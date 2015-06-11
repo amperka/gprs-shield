@@ -1,12 +1,12 @@
 /*
  * sim900.cpp
- * A library for Amperka GPRS Shield
+ * A library for SeeedStudio seeeduino GPRS shield 
  *  
- * Copyright (c) 2015 seeed technology inc,
- *                    Amperka LLC
- *
- * Author        : lawliet zou
- * Contributors  : Igor Dementev
+ * Copyright (c) 2015 seeed technology inc.
+ * Website    : www.seeed.cc
+ * Author     : lawliet zou
+ * Create Time: April 2015
+ * Change Log :
  *
  * The MIT License (MIT)
  *

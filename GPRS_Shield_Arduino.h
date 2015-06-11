@@ -1,15 +1,15 @@
 /*
  * GPRS_Shield_Arduino.h 
- * A library for Amperka GPRS Shield
+ * A library for SeeedStudio seeeduino GPRS shield 
  *  
- * Copyright (c) 2015 seeed technology inc,
- *                    Amperka LLC
- *
- * Author        : lawliet zou
- * Contributors  : Igor Dementev
+ * Copyright (c) 2015 seeed technology inc.
+ * Website    : www.seeed.cc
+ * Author     : lawliet zou
+ * Create Time: April 2015
+ * Change Log :
  *
  * The MIT License (MIT)
- *
+  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
@@ -82,6 +82,7 @@ public:
      *      
      */
     void powerUpDown();
+    void powerOff();
      
     /** send text SMS
      *  @param  *number phone number which SMS will be send to
@@ -188,7 +189,8 @@ public:
      *  @return true if connected, false otherwise
      */
 	 
-    bool join(const __FlashStringHelper *apn = 0, const __FlashStringHelper *userName = 0, const __FlashStringHelper *passWord = 0);
+//    bool join(const __FlashStringHelper *apn = 0, const __FlashStringHelper *userName = 0, const __FlashStringHelper *passWord = 0);
+     bool join(char* apn = 0, char* = 0, char* = 0, int timeout = 2 * DEFAULT_TIMEOUT);
 
     /** Disconnect the GPRS module from the network
      *  @returns
@@ -233,6 +235,7 @@ public:
      */
     int wait_writeable(int req_size);
 
+    int send(const char * str);
     /** send data to socket
      *  @param socket socket
      *  @param str string to be sent

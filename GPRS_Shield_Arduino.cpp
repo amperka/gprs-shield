@@ -1,12 +1,12 @@
 /*
  * GPRS_Shield_Arduino.cpp
- * A library for Amperka GPRS Shield
+ * A library for SeeedStudio seeeduino GPRS shield 
  *  
- * Copyright (c) 2015 seeed technology inc,
- *                    Amperka LLC
- *
- * Author        : lawliet zou
- * Contributors  : Igor Dementev
+ * Copyright (c) 2015 seeed technology inc.
+ * Website    : www.seeed.cc
+ * Author     : lawliet zou
+ * Create Time: April 2015
+ * Change Log :
  *
  * The MIT License (MIT)
  *
@@ -64,6 +64,7 @@ bool GPRS::init(void)
     if(!checkSIMStatus()) {
 		return false;
     }
+    delay(5000);
     return true;
 }
 
@@ -81,8 +82,20 @@ void GPRS::powerUpDown()
     delay(3000);
   }
   digitalWrite(2, LOW);
+  delay(3000);
 }
-    
+
+void GPRS::powerOff()
+{
+  pinMode(2, OUTPUT);
+  if(digitalRead(3)==1)
+  {
+    digitalWrite(2, HIGH);
+    delay(3000);
+  }
+  digitalWrite(2, LOW);
+  delay(3000);
+}   
     
 bool GPRS::checkSIMStatus(void)
 {
@@ -462,11 +475,20 @@ bool GPRS::getDateTime(char *buffer)
 }
 
 //Here is where we ask for APN configuration, with F() so we can save MEMORY
-bool GPRS::join(const __FlashStringHelper *apn, const __FlashStringHelper *userName, const __FlashStringHelper *passWord)
+//bool GPRS::join(const __FlashStringHelper *apn, const __FlashStringHelper *userName, const __FlashStringHelper *passWord)
+bool GPRS::join(char* apn, char* userName, char* passWord, int timeout)
 {
-	byte i;
+	  byte i;
     char *p, *s;
     char ipAddr[32];
+/*    if(!sim900_check_with_cmd("AT+CIPSHUT\r\n","SHUT OK\r\n", CMD)) {
+      Serial.write("Error = 1\r\n");
+    return false;
+    }
+    delay(1000);
+*/
+    sim900_send_cmd("AT+CIPSHUT\r\n");
+    delay(500);
     //Select multiple connection
     //sim900_check_with_cmd("AT+CIPMUX=1\r\n","OK",DEFAULT_TIMEOUT,CMD);
 
@@ -479,16 +501,23 @@ bool GPRS::join(const __FlashStringHelper *apn, const __FlashStringHelper *userN
     sim900_send_cmd(userName);
     sim900_send_cmd("\",\"");
     sim900_send_cmd(passWord);
-    sim900_check_with_cmd("\"\r\n", "OK\r\n", CMD);
-    
-
+    sim900_send_cmd("\"\r\n");
+    delay(500);
     //Brings up wireless connection
-    sim900_check_with_cmd("AT+CIICR\r\n","OK\r\n", CMD);
+
+    sim900_send_cmd("AT+CIICR\r\n");
+    delay(4000);
+    sim900_wait_for_resp("OK\r\n", CMD);
+    delay(500);
+//    sim900_check_with_cmd("AT+CIICR\r\n","OK\r\n", CMD);
+
 
     //Get local IP address
     sim900_send_cmd("AT+CIFSR\r\n");
+    delay(500);
     sim900_clean_buffer(ipAddr,32);
-    sim900_read_buffer(ipAddr,32);
+    sim900_read_buffer(ipAddr,32,DEFAULT_TIMEOUT);
+
 	//Response:
 	//AT+CIFSR\r\n       -->  8 + 2
 	//\r\n				 -->  0 + 2
@@ -498,6 +527,7 @@ bool GPRS::join(const __FlashStringHelper *apn, const __FlashStringHelper *userN
 	//\r\n				 
 	//ERROR\r\n
     if (NULL != strstr(ipAddr,"ERROR")) {
+      Serial.write("Error = 2\r\n");
 		return false;
 	}
     s = ipAddr + 12;
@@ -511,8 +541,10 @@ bool GPRS::join(const __FlashStringHelper *apn, const __FlashStringHelper *userN
     }
     _ip = str_to_ip(ip_string);
     if(_ip != 0) {
+       
         return true;
     }
+    Serial.write("Error = 3\r\n");
     return false;
 } 
 
@@ -549,9 +581,10 @@ bool GPRS::connect(Protocol ptl,const char * host, int port, int timeout)
         return false;
     }
     
-
+    delay(2000);
     //sim900_send_cmd(cmd);
     sim900_read_buffer(resp,96,timeout);
+
 //Serial.print("Connect resp: "); Serial.println(resp);    
     if(NULL != strstr(resp,"CONNECT")) { //ALREADY CONNECT or CONNECT OK
         return true;
@@ -652,7 +685,34 @@ int GPRS::send(const char * str, int len)
     }
     return len;
 }
-    
+
+int GPRS::send(const char * str) {
+    //char cmd[32];
+  int len=strlen(str);
+  char num[4];
+    if(len > 0){
+        //snprintf(cmd,sizeof(cmd),"AT+CIPSEND=%d\r\n",len);
+    //sprintf(cmd,"AT+CIPSEND=%d\r\n",len);
+    sim900_send_cmd("AT+CIPSEND=");
+    itoa(len, num, 10);
+    sim900_send_cmd(num);
+    if(!sim900_check_with_cmd("\r\n",">",CMD)) {
+        //if(!sim900_check_with_cmd(cmd,">",CMD)) {
+            return 0;
+        }
+        /*if(0 != sim900_check_with_cmd(str,"SEND OK\r\n", DEFAULT_TIMEOUT * 10 ,DATA)) {
+            return 0;
+        }*/
+        delay(500);
+        sim900_send_cmd(str);
+        delay(500);
+        sim900_send_End_Mark();
+        if(!sim900_wait_for_resp("SEND OK\r\n", DATA, DEFAULT_TIMEOUT * 10, DEFAULT_INTERCHAR_TIMEOUT * 10)) {
+            return 0;
+        }        
+    }
+    return len;
+}   
 
 int GPRS::recv(char* buf, int len)
 {
