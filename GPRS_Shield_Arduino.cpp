@@ -33,6 +33,8 @@
 #include "GPRS_Shield_Arduino.h"
 #include "SoftwareSerial.h"
 
+static const char* s_ok = "OK\r\n";
+
 GPRS* GPRS::inst;
 
 GPRS::GPRS(uint32_t baudRate)
@@ -46,18 +48,44 @@ GPRS::GPRS(uint8_t tx, uint8_t rx, uint32_t baudRate)
 {
     inst = this;
     SoftwareSerial* gprsserial = new SoftwareSerial(tx, rx);
-    stream = gprsserial ;
+    stream = gprsserial;
     sim900_init(stream);
-    gprsserial ->begin(baudRate);    
+    gprsserial ->begin(baudRate);
+}
+
+GPRS::GPRS(bool hw, uint32_t baudRate, uint8_t pk, uint8_t st, uint8_t tx, uint8_t rx)
+{
+    inst = this;
+    if( hw )
+    {
+        sim900_init(&SERIAL_PORT_HARDWARE);
+        SERIAL_PORT_HARDWARE.begin(baudRate);
+    }
+    else
+    {
+        SoftwareSerial* gprsserial = new SoftwareSerial(tx, rx);
+        stream = gprsserial;
+        sim900_init(stream);
+        gprsserial->begin(baudRate);
+    }
+    
+    _pin_pk = pk;
+    _pin_st = st;
+    
+    if( _pin_pk != 255 )
+        pinMode(_pin_pk, OUTPUT);
+    
+    if( _pin_st != 255 )
+        pinMode(_pin_st, INPUT);
 }
 
 bool GPRS::init(void)
 {
-    if(!sim900_check_with_cmd("AT\r\n","OK\r\n",CMD)){
+    if(!sim900_check_with_cmd(F("AT\r\n"),s_ok,CMD)){
 		return false;
     }
     
-    if(!sim900_check_with_cmd("AT+CFUN=1\r\n","OK\r\n",CMD)){
+    if(!sim900_check_with_cmd(F("AT+CFUN=1\r\n"),s_ok,CMD)){
         return false;
     }
     
@@ -70,30 +98,30 @@ bool GPRS::init(void)
 
 bool GPRS::checkPowerUp(void)
 {
-  return sim900_check_with_cmd("AT\r\n","OK\r\n",CMD);
+  return sim900_check_with_cmd(F("AT\r\n"),s_ok,CMD);
 }
 
 void GPRS::powerUpDown()
 {
-  pinMode(2, OUTPUT);
-  if(digitalRead(3)!=1)
+  pinMode(_pin_pk, OUTPUT);
+  if( _pin_st == 255 || digitalRead(_pin_st) != 1 )
   {
-    digitalWrite(2, HIGH);
+    digitalWrite(_pin_pk, HIGH);
     delay(3000);
   }
-  digitalWrite(2, LOW);
+  digitalWrite(_pin_pk, LOW);
   delay(3000);
 }
 
 void GPRS::powerOff()
 {
-  pinMode(2, OUTPUT);
-  if(digitalRead(3)==1)
+  pinMode(_pin_pk, OUTPUT);
+  if( _pin_st == 255 || digitalRead(_pin_st) == 1)
   {
-    digitalWrite(2, HIGH);
+    digitalWrite(_pin_pk, HIGH);
     delay(3000);
   }
-  digitalWrite(2, LOW);
+  digitalWrite(_pin_pk, LOW);
   delay(3000);
 }   
     
@@ -103,7 +131,7 @@ bool GPRS::checkSIMStatus(void)
     int count = 0;
     sim900_clean_buffer(gprsBuffer,32);
     while(count < 3) {
-        sim900_send_cmd("AT+CPIN?\r\n");
+        sim900_send_cmd(F("AT+CPIN?\r\n"));
         sim900_read_buffer(gprsBuffer,32,DEFAULT_TIMEOUT);
         if((NULL != strstr(gprsBuffer,"+CPIN: READY"))) {
             break;
@@ -122,16 +150,16 @@ bool GPRS::checkSIMStatus(void)
 bool GPRS::sendSMS(char *number, char *data)
 {
     //char cmd[32];
-    if(!sim900_check_with_cmd("AT+CMGF=1\r\n", "OK\r\n", CMD)) { // Set message mode to ASCII
+    if(!sim900_check_with_cmd(F("AT+CMGF=1\r\n"), s_ok, CMD)) { // Set message mode to ASCII
         return false;
     }
     delay(500);
-	sim900_send_cmd("AT+CMGS=\"");
+	sim900_send_cmd(F("AT+CMGS=\""));
 	sim900_send_cmd(number);
     //sprintf(cmd,"AT+CMGS=\"%s\"\r\n", number);
 	//snprintf(cmd, sizeof(cmd),"AT+CMGS=\"%s\"\r\n", number);
 //    if(!sim900_check_with_cmd(cmd,">",CMD)) {
-    if(!sim900_check_with_cmd("\"\r\n",">",CMD)) {
+    if(!sim900_check_with_cmd(F("\"\r\n"),">",CMD)) {
         return false;
     }
     delay(1000);
@@ -186,10 +214,10 @@ char GPRS::isSMSunread()
     } else {
         //More buffer to read
         //We are going to flush serial data until OK is recieved
-        sim900_wait_for_resp("OK\r\n", CMD);        
+        sim900_wait_for_resp(s_ok, CMD);        
         //sim900_flush_serial();
         //We have to call command again
-        sim900_send_cmd("AT+CMGL=\"REC UNREAD\",1\r\n");
+        sim900_send_cmd(F("AT+CMGL=\"REC UNREAD\",1\r\n"));
         sim900_clean_buffer(gprsBuffer,48); 
         sim900_read_buffer(gprsBuffer,47,DEFAULT_TIMEOUT);
     //Serial.print("Buffer isSMSunread 2: ");Serial.println(gprsBuffer);       
@@ -198,7 +226,7 @@ char GPRS::isSMSunread()
             s = strstr(gprsBuffer,":");
             if (s != NULL) {
                 //We are going to flush serial data until OK is recieved
-                sim900_wait_for_resp("OK\r\n", CMD);
+                sim900_wait_for_resp(s_ok, CMD);
                 return atoi(s+1);
             }
         } else {
@@ -226,14 +254,14 @@ bool GPRS::readSMS(int messageIndex, char *message, int length, char *phone, cha
 	char num[4];
     char *p,*p2,*s;
     
-    sim900_check_with_cmd("AT+CMGF=1\r\n","OK\r\n",CMD);
+    sim900_check_with_cmd(F("AT+CMGF=1\r\n"),s_ok,CMD);
     delay(1000);
 	//sprintf(cmd,"AT+CMGR=%d\r\n",messageIndex);
     //sim900_send_cmd(cmd);
-	sim900_send_cmd("AT+CMGR=");
+	sim900_send_cmd(F("AT+CMGR="));
 	itoa(messageIndex, num, 10);
 	sim900_send_cmd(num);
-	sim900_send_cmd("\r\n");
+	sim900_send_cmd(F("\r\n"));
     sim900_clean_buffer(gprsBuffer,sizeof(gprsBuffer));
     sim900_read_buffer(gprsBuffer,sizeof(gprsBuffer));
       
@@ -283,12 +311,12 @@ bool GPRS::readSMS(int messageIndex, char *message,int length)
 	char num[4];
     char *p,*s;
     
-    sim900_check_with_cmd("AT+CMGF=1\r\n","OK\r\n",CMD);
+    sim900_check_with_cmd(F("AT+CMGF=1\r\n"),s_ok,CMD);
     delay(1000);
-	sim900_send_cmd("AT+CMGR=");
+	sim900_send_cmd(F("AT+CMGR="));
 	itoa(messageIndex, num, 10);
 	sim900_send_cmd(num);
-	sim900_send_cmd("\r\n");
+	sim900_send_cmd(F("\r\n"));
 //  sprintf(cmd,"AT+CMGR=%d\r\n",messageIndex);
 //    sim900_send_cmd(cmd);
     sim900_clean_buffer(gprsBuffer,sizeof(gprsBuffer));
@@ -311,36 +339,36 @@ bool GPRS::deleteSMS(int index)
     //char cmd[16];
 	char num[4];
     //sprintf(cmd,"AT+CMGD=%d\r\n",index);
-    sim900_send_cmd("AT+CMGD=");
+    sim900_send_cmd(F("AT+CMGD="));
 	itoa(index, num, 10);
 	sim900_send_cmd(num);
 	//snprintf(cmd,sizeof(cmd),"AT+CMGD=%d\r\n",index);
     //sim900_send_cmd(cmd);
     //return 0;
     // We have to wait OK response
-	//return sim900_check_with_cmd(cmd,"OK\r\n",CMD);
-	return sim900_check_with_cmd("\r\n","OK\r\n",CMD);	
+	//return sim900_check_with_cmd(cmd,s_ok,CMD);
+	return sim900_check_with_cmd(F("\r\n"),s_ok,CMD);	
 }
 
 bool GPRS::callUp(char *number)
 {
     //char cmd[24];
-    if(!sim900_check_with_cmd("AT+COLP=1\r\n","OK\r\n",CMD)) {
+    if(!sim900_check_with_cmd(F("AT+COLP=1\r\n"),s_ok,CMD)) {
         return false;
     }
     delay(1000);
 	//HACERR quitar SPRINTF para ahorar memoria ???
     //sprintf(cmd,"ATD%s;\r\n", number);
     //sim900_send_cmd(cmd);
-	sim900_send_cmd("ATD");
+	sim900_send_cmd(F("ATD"));
 	sim900_send_cmd(number);
-	sim900_send_cmd(";\r\n");
+	sim900_send_cmd(F(";\r\n"));
     return true;
 }
 
 void GPRS::answer(void)
 {
-    sim900_send_cmd("ATA\r\n");  //TO CHECK: ATA doesnt return "OK" ????
+    sim900_send_cmd(F("ATA\r\n"));  //TO CHECK: ATA doesnt return "OK" ????
 }
 
 bool GPRS::ifcallNow(void)
@@ -355,17 +383,17 @@ bool GPRS::ifcallEnd(void)
 
 void GPRS::callEnd(void)
 {
-    sim900_send_cmd("ATH0\r\n");  //TO CHECK: ATA doesnt return "OK" ????
+    sim900_send_cmd(F("ATH0\r\n"));  //TO CHECK: ATA doesnt return "OK" ????
 }
 
 bool GPRS::hangup(void)
 {
-    return sim900_check_with_cmd("ATH\r\n","OK\r\n",CMD);
+    return sim900_check_with_cmd(F("ATH\r\n"),s_ok,CMD);
 }
 
 bool GPRS::disableCLIPring(void)
 {
-    return sim900_check_with_cmd("AT+CLIP=0\r\n","OK\r\n",CMD);
+    return sim900_check_with_cmd(F("AT+CLIP=0\r\n"),s_ok,CMD);
 }
 
 bool GPRS::isCallActive(char *number)
@@ -374,7 +402,7 @@ bool GPRS::isCallActive(char *number)
     char *p, *s;
     int i = 0;
 
-    sim900_send_cmd("AT+CPAS\r\n");
+    sim900_send_cmd(F("AT+CPAS\r\n"));
     /*Result code:
         0: ready
         2: unknown
@@ -398,7 +426,7 @@ bool GPRS::isCallActive(char *number)
     sim900_read_buffer(gprsBuffer,27);
     //HACERR cuando haga lo de esperar a OK no me haría falta esto
     //We are going to flush serial data until OK is recieved
-    sim900_wait_for_resp("OK\r\n", CMD);    
+    sim900_wait_for_resp(s_ok, CMD);    
     //Serial.print("Buffer isCallActive 1: ");Serial.println(gprsBuffer);
     if(NULL != ( s = strstr(gprsBuffer,"+CPAS:"))) {
       s = s + 7;
@@ -406,7 +434,7 @@ bool GPRS::isCallActive(char *number)
          //There is something "running" (but number 2 that is unknow)
          if (*s != '2') {
            //3 or 4, let's go to check for the number
-           sim900_send_cmd("AT+CLCC\r\n");
+           sim900_send_cmd(F("AT+CLCC\r\n"));
            /*
            AT+CLCC --> 9
            
@@ -436,7 +464,7 @@ bool GPRS::isCallActive(char *number)
              }
              //I need to read more buffer
              //We are going to flush serial data until OK is recieved
-             return sim900_wait_for_resp("OK\r\n", CMD); 
+             return sim900_wait_for_resp(s_ok, CMD); 
            }
          }
       }        
@@ -454,7 +482,7 @@ bool GPRS::getDateTime(char *buffer)
     byte i = 0;
     char gprsBuffer[46];
     char *p,*s;
-    sim900_send_cmd("AT+CCLK?\r\n");
+    sim900_send_cmd(F("AT+CCLK?\r\n"));
     sim900_clean_buffer(gprsBuffer,43);
     sim900_read_buffer(gprsBuffer,43,DEFAULT_TIMEOUT);
     if(NULL != ( s = strstr(gprsBuffer,"+CCLK:"))) {
@@ -469,7 +497,7 @@ bool GPRS::getDateTime(char *buffer)
             buffer[i] = '\0';            
         }
         //We are going to flush serial data until OK is recieved
-        return sim900_wait_for_resp("OK\r\n", CMD);
+        return sim900_wait_for_resp(s_ok, CMD);
     }  
     return false;
 }
@@ -487,33 +515,33 @@ bool GPRS::join(char* apn, char* userName, char* passWord, int timeout)
     }
     delay(1000);
 */
-    sim900_send_cmd("AT+CIPSHUT\r\n");
+    sim900_send_cmd(F("AT+CIPSHUT\r\n"));
     delay(500);
     //Select multiple connection
     //sim900_check_with_cmd("AT+CIPMUX=1\r\n","OK",DEFAULT_TIMEOUT,CMD);
 
     //set APN. OLD VERSION
     //snprintf(cmd,sizeof(cmd),"AT+CSTT=\"%s\",\"%s\",\"%s\"\r\n",_apn,_userName,_passWord);
-    //sim900_check_with_cmd(cmd, "OK\r\n", DEFAULT_TIMEOUT,CMD);
-    sim900_send_cmd("AT+CSTT=\"");
+    //sim900_check_with_cmd(cmd, s_ok, DEFAULT_TIMEOUT,CMD);
+    sim900_send_cmd(F("AT+CSTT=\""));
     sim900_send_cmd(apn);
-    sim900_send_cmd("\",\"");
+    sim900_send_cmd(F("\",\""));
     sim900_send_cmd(userName);
-    sim900_send_cmd("\",\"");
+    sim900_send_cmd(F("\",\""));
     sim900_send_cmd(passWord);
-    sim900_send_cmd("\"\r\n");
+    sim900_send_cmd(F("\"\r\n"));
     delay(500);
     //Brings up wireless connection
 
-    sim900_send_cmd("AT+CIICR\r\n");
+    sim900_send_cmd(F("AT+CIICR\r\n"));
     delay(4000);
-    sim900_wait_for_resp("OK\r\n", CMD);
+    sim900_wait_for_resp(s_ok, CMD);
     delay(500);
-//    sim900_check_with_cmd("AT+CIICR\r\n","OK\r\n", CMD);
+//    sim900_check_with_cmd("AT+CIICR\r\n",s_ok, CMD);
 
 
     //Get local IP address
-    sim900_send_cmd("AT+CIFSR\r\n");
+    sim900_send_cmd(F("AT+CIFSR\r\n"));
     delay(500);
     sim900_clean_buffer(ipAddr,32);
     sim900_read_buffer(ipAddr,32,DEFAULT_TIMEOUT);
@@ -527,7 +555,7 @@ bool GPRS::join(char* apn, char* userName, char* passWord, int timeout)
 	//\r\n				 
 	//ERROR\r\n
     if (NULL != strstr(ipAddr,"ERROR")) {
-      Serial.write("Error = 2\r\n");
+		Serial.write("Error = 2\r\n"); ///< @todo Убрать этот шлак
 		return false;
 	}
     s = ipAddr + 12;
@@ -544,13 +572,13 @@ bool GPRS::join(char* apn, char* userName, char* passWord, int timeout)
        
         return true;
     }
-    Serial.write("Error = 3\r\n");
+    Serial.write("Error = 3\r\n"); ///< @todo Убрать этот шлак тоже
     return false;
 } 
 
 void GPRS::disconnect()
 {
-    sim900_send_cmd("AT+CIPSHUT\r\n");
+    sim900_send_cmd(F("AT+CIPSHUT\r\n"));
 }
 
 bool GPRS::connect(Protocol ptl,const char * host, int port, int timeout)
@@ -561,20 +589,20 @@ bool GPRS::connect(Protocol ptl,const char * host, int port, int timeout)
 
     //sim900_clean_buffer(cmd,64);
     if(ptl == TCP) {
-		sim900_send_cmd("AT+CIPSTART=\"TCP\",\"");
+		sim900_send_cmd(F("AT+CIPSTART=\"TCP\",\""));
 		sim900_send_cmd(host);
-		sim900_send_cmd("\",");
+		sim900_send_cmd(F("\","));
 		itoa(port, num, 10);
 		sim900_send_cmd(num);
 		sim900_send_cmd("\r\n");
 //        sprintf(cmd, "AT+CIPSTART=\"TCP\",\"%s\",%d\r\n",host, port);
     } else if(ptl == UDP) {
-		sim900_send_cmd("AT+CIPSTART=\"UDP\",\"");
+		sim900_send_cmd(F("AT+CIPSTART=\"UDP\",\""));
 		sim900_send_cmd(host);
-		sim900_send_cmd("\",");
+		sim900_send_cmd(F("\","));
 		itoa(port, num, 10);
 		sim900_send_cmd(num);
-		sim900_send_cmd("\r\n");
+		sim900_send_cmd(F("\r\n"));
 
 	//        sprintf(cmd, "AT+CIPSTART=\"UDP\",\"%s\",%d\r\n",host, port);
     } else {
@@ -622,7 +650,7 @@ bool GPRS::connect(Protocol ptl,const __FlashStringHelper *host, const __FlashSt
 bool GPRS::is_connected(void)
 {
     char resp[96];
-    sim900_send_cmd("AT+CIPSTATUS\r\n");
+    sim900_send_cmd(F("AT+CIPSTATUS\r\n"));
     sim900_read_buffer(resp,sizeof(resp),DEFAULT_TIMEOUT);
     if(NULL != strstr(resp,"CONNECTED")) {
         //+CIPSTATUS: 1,0,"TCP","216.52.233.120","80","CONNECTED"
@@ -640,7 +668,7 @@ bool GPRS::close()
     if (!is_connected()) {
         return true;
     }
-    return sim900_check_with_cmd("AT+CIPCLOSE\r\n", "CLOSE OK\r\n", CMD);
+    return sim900_check_with_cmd(F("AT+CIPCLOSE\r\n"), "CLOSE OK\r\n", CMD);
 }
 
 int GPRS::readable(void)
@@ -665,10 +693,10 @@ int GPRS::send(const char * str, int len)
     if(len > 0){
         //snprintf(cmd,sizeof(cmd),"AT+CIPSEND=%d\r\n",len);
 		//sprintf(cmd,"AT+CIPSEND=%d\r\n",len);
-		sim900_send_cmd("AT+CIPSEND=");
+		sim900_send_cmd(F("AT+CIPSEND="));
 		itoa(len, num, 10);
 		sim900_send_cmd(num);
-		if(!sim900_check_with_cmd("\r\n",">",CMD)) {
+		if(!sim900_check_with_cmd(F("\r\n"),">",CMD)) {
         //if(!sim900_check_with_cmd(cmd,">",CMD)) {
             return 0;
         }
@@ -693,10 +721,10 @@ int GPRS::send(const char * str) {
     if(len > 0){
         //snprintf(cmd,sizeof(cmd),"AT+CIPSEND=%d\r\n",len);
     //sprintf(cmd,"AT+CIPSEND=%d\r\n",len);
-    sim900_send_cmd("AT+CIPSEND=");
+    sim900_send_cmd(F("AT+CIPSEND="));
     itoa(len, num, 10);
     sim900_send_cmd(num);
-    if(!sim900_check_with_cmd("\r\n",">",CMD)) {
+    if(!sim900_check_with_cmd(F("\r\n"),">",CMD)) {
         //if(!sim900_check_with_cmd(cmd,">",CMD)) {
             return 0;
         }
