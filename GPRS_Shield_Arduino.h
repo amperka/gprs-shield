@@ -53,7 +53,9 @@ public:
 
     GPRS(uint32_t baudRate = 9600); 
 	 
-    GPRS(uint8_t tx, uint8_t rx, uint32_t baudRate = 9600 ); 
+    GPRS(uint8_t tx, uint8_t rx, uint32_t baudRate = 9600);
+	
+	GPRS(bool hw, uint32_t baudRate = 9600, uint8_t pk = 8, uint8_t st = 255, uint8_t tx = 255, uint8_t rx = 255);
     
     /** get instance of GPRS class
      */
@@ -269,6 +271,8 @@ private:
     Stream* stream;
     static GPRS* inst;
     uint32_t _ip;
+	uint8_t _pin_pk;
+	uint8_t _pin_st;
     char ip_string[16]; //XXX.YYY.ZZZ.WWW + \0
 };
 #endif

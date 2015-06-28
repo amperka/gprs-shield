@@ -170,7 +170,6 @@ boolean sim900_wait_for_resp(const char* resp, DataType type, unsigned int timeo
     return true;   
 }
 
-
 boolean sim900_check_with_cmd(const char* cmd, const char *resp, DataType type, unsigned int timeout, unsigned int chartimeout)
 {
     sim900_send_cmd(cmd);
