@@ -53,7 +53,7 @@ public:
 
     GPRS(uint8_t pkPin=2, uint8_t stPin = 3, uint32_t baudRate = 9600); 
 	 
-    GPRS(uint8_t tx, uint8_t rx, uint8_t pkPin, uint8_t stPin, uint32_t baudRate = 9600 ); 
+    GPRS(uint8_t pkPin, uint8_t stPin, uint8_t rx, uint8_t tx, uint32_t baudRate = 9600 ); 
     
     /** get instance of GPRS class
      */

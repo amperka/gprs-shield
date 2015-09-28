@@ -45,7 +45,7 @@ GPRS::GPRS(uint8_t pkPin, uint8_t stPin, uint32_t baudRate)
   SERIAL_PORT_HARDWARE.begin(baudRate);
 }
 
-GPRS::GPRS(uint8_t tx, uint8_t rx, uint8_t pkPin, uint8_t stPin, uint32_t baudRate)
+GPRS::GPRS(uint8_t pkPin, uint8_t stPin, uint8_t rx, uint8_t tx, uint32_t baudRate)
 {  
   _stPin = stPin;
   _pkPin = pkPin;
