@@ -51,9 +51,9 @@ public:
      *  @param number default phone number during mobile communication
      */
 
-    GPRS(uint32_t baudRate = 9600); 
+    GPRS(uint8_t pkPin=2, uint8_t stPin = 3, uint32_t baudRate = 9600); 
 	 
-    GPRS(uint8_t tx, uint8_t rx, uint32_t baudRate = 9600 ); 
+    GPRS(uint8_t tx, uint8_t rx, uint8_t pkPin, uint8_t stPin, uint32_t baudRate = 9600 ); 
     
     /** get instance of GPRS class
      */
@@ -264,6 +264,9 @@ public:
     
 private:
     bool checkSIMStatus(void);
+    uint8_t _stPin = 3;
+    uint8_t _pkPin = 2;
+    
     uint32_t str_to_ip(const char* str);
 //    SoftwareSerial gprsSerial;
     Stream* stream;
