@@ -1,17 +1,25 @@
 // библиотека для работы с GPRS устройством
 #include <GPRS_Shield_Arduino.h>
  
-// библиотека для эмуляции Serial порта
+// библиотека для эмуляции Serial-порта
 // она нужна для работы библиотеки GPRS_Shield_Arduino
 #include <SoftwareSerial.h>
  
-// номер на который будем отправлять сообщение
-#define PHONE_NUMBER  "+79263995140"
-// текст сообщения, которое будем отправлять
-#define MESSAGE  "Hello from GPRS Shield"
+// длина сообщения
+#define MESSAGE_LENGTH 160
+ 
+// номер сообщения в памяти сим-карты
+int messageIndex = 0;
+ 
+// текст сообщения
+char message[MESSAGE_LENGTH];
+// номер, с которого пришло сообщение
+char phone[16];
+// дата отправки сообщения
+char datetime[24];
  
 // создаём объект класса GPRS и передаём ему скорость 9600 бод
-// с помощью него будем давать команды GPRS шилду
+// с помощью него будем давать команды GPRS-шилду
 GPRS gprs(9600);
  
 void setup()
@@ -33,14 +41,34 @@ void setup()
     delay(1000);
     Serial.print("Init error\r\n");
   }
-  // вывод об удачной инициализации GPRS Shield
+  // выводим сообщение об удачной инициализации GPRS Shield
   Serial.println("GPRS init success");
-  // сообщаем о написании и отправке СМС по указанному номеру
-  Serial.println("Start to send message ...");
-  // отправляем сообщение по указанному номеру с заданным текстом
-  gprs.sendSMS(PHONE_NUMBER, MESSAGE);
+  Serial.println("Please send SMS message to me!");
 }
  
 void loop()
 {
+  // проверяем наличие непрочитанных сообщений
+  // и находим их номер в памяти сим-карты
+  messageIndex = gprs.isSMSunread();
+  if (messageIndex > 0) {
+    // если есть хотя бы одно непрочитанное сообщение,
+    // читаем его
+    gprs.readSMS(messageIndex, message, MESSAGE_LENGTH, phone, datetime);
+ 
+    // Удаляем прочитанное сообщение из памяти Сим-карты
+    gprs.deleteSMS(messageIndex);
+ 
+    // выводим номер, с которого пришло смс
+    Serial.print("From number: ");
+    Serial.println(phone);
+ 
+    // выводим дату, когда пришло смс
+    Serial.print("Datetime: ");
+    Serial.println(datetime);
+ 
+    // выводим текст сообщения
+    Serial.print("Recieved Message: ");
+    Serial.println(message);
+  }
 }
