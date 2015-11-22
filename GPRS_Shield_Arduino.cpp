@@ -480,6 +480,25 @@ bool GPRS::sendSMS(char *number, char *data)
       return false;
     }
 
+    byte GPRS::getSignalStrength() {
+      //AT+CSQ: 00,00     --> 13 + CRLF = 15
+      //                  --> CRLF     = 2
+      //OK                --> 2 + CRLF = 4
+
+
+        byte result = 99;
+        char gprsBuffer[21];
+        sim900_clean_buffer(gprsBuffer,21);
+        char *s;
+        sim900_send_cmd("AT+CSQ\r\n");
+        sim900_read_buffer(gprsBuffer,21,DEFAULT_TIMEOUT);
+        if(NULL != ( s = strstr(gprsBuffer,"+CSQ: "))) {
+            result = atoi(s+5);
+            sim900_wait_for_resp("OK\r\n", CMD);        
+        }  
+        return result;
+    }
+
 //Here is where we ask for APN configuration, with F() so we can save MEMORY
 //bool GPRS::join(const __FlashStringHelper *apn, const __FlashStringHelper *userName, const __FlashStringHelper *passWord)
     bool GPRS::join(char* apn, char* userName, char* passWord, int timeout)
