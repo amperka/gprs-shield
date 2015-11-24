@@ -51,7 +51,7 @@ GPRS::GPRS(uint8_t pkPin, uint8_t stPin, uint8_t rx, uint8_t tx, uint32_t baudRa
   _pkPin = pkPin;
 
   inst = this;
-  SoftwareSerial* gprsserial = new SoftwareSerial(tx, rx);
+  SoftwareSerial* gprsserial = new SoftwareSerial(rx, tx);
   stream = gprsserial ;
   sim900_init(stream);
   gprsserial ->begin(baudRate);    
