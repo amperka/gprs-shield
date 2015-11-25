@@ -493,7 +493,7 @@ bool GPRS::sendSMS(char *number, char *data)
         sim900_send_cmd("AT+CSQ\r\n");
         sim900_read_buffer(gprsBuffer,21,DEFAULT_TIMEOUT);
         if(NULL != ( s = strstr(gprsBuffer,"+CSQ: "))) {
-            result = atoi(s+5);
+            result = atoi(s+6);
             sim900_wait_for_resp("OK\r\n", CMD);        
         }  
         return result;
