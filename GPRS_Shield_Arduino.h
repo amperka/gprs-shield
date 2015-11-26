@@ -180,6 +180,16 @@ public:
      *      false on error
      */        
     bool getDateTime(char *buffer);
+
+    /** getSignalStrength from SIM900 (see AT command: AT+CSQ)
+     *  @returns 
+     0 — 113 dBm or less
+     1 — 111 dBm
+     2...30 — 109... 53 dBm
+     31 — 51 dBm or greater
+     99 — not known or not detectable
+     */
+    byte getSignalStrength();
     
 
 //////////////////////////////////////////////////////
