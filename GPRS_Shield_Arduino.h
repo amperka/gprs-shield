@@ -112,7 +112,7 @@ public:
      *      true on success
      *      false on error
      */
-    bool readSMS(int messageIndex, char *message, int length, char *phone, char *datetime); 
+    void readSMS(char *message, char *phone, char *datetime); 
 
     /** read SMS if getting a SMS message
      *  @param  buffer  buffer that get from GPRS module(when getting a SMS, GPRS module will return a buffer array)
@@ -130,6 +130,8 @@ public:
      *      true on success
      *      false on error
      */
+    void readSMS();
+
     bool deleteSMS(int index);
 
     /** call someone
@@ -158,7 +160,9 @@ public:
      *      true on success
      *      false on error
      */
-    bool ifcallNow(void); 
+    bool ifcallNow(void);
+
+    bool ifSMSNow(void);
 
     bool ifcallEnd(void);
 

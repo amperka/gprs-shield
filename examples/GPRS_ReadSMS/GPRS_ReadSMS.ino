@@ -48,17 +48,11 @@ void setup()
  
 void loop()
 {
-  // проверяем наличие непрочитанных сообщений
-  // и находим их номер в памяти сим-карты
-  messageIndex = gprs.isSMSunread();
-  if (messageIndex > 0) {
-    // если есть хотя бы одно непрочитанное сообщение,
+  // если пришло новое сообщение
+  if (gprs.ifSMSNow()) {
     // читаем его
-    gprs.readSMS(messageIndex, message, MESSAGE_LENGTH, phone, datetime);
- 
-    // Удаляем прочитанное сообщение из памяти Сим-карты
-    gprs.deleteSMS(messageIndex);
- 
+    gprs.readSMS(message, phone, datetime);
+
     // выводим номер, с которого пришло смс
     Serial.print("From number: ");
     Serial.println(phone);
