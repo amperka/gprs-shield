@@ -69,7 +69,23 @@ bool GPRS::init(void)
 
   if(!checkSIMStatus()) 
     return false;
-  
+
+  if (!sim900_check_with_cmd("AT+CNMI?\r\n", "+CNMI: 2,2,0,0,0\r\nOK\r\n",CMD)) {
+    if (!sim900_check_with_cmd("AT+CNMI=2,2,0,0,0\r\n","OK\r\n",CMD)) {
+      return false;
+    }
+  }
+
+  if (!sim900_check_with_cmd("AT+CMGF?\r\n", "+CMGF: 1\r\nOK\r\n",CMD)) {
+    if (!sim900_check_with_cmd("AT+CMGF=1\r\n","OK\r\n",CMD)) {
+      return false;
+    }
+  }
+
+  if (!sim900_check_with_cmd("AT+CLIP=1\r\n","OK\r\n",CMD)) {
+      return false;
+  }
+
   delay(5000);
   return true;
 }
