@@ -67,30 +67,11 @@ public:
 
     bool init(void);
 
-   
-    /** check if GPRS module is powered on or not
-     *  @returns
-     *      true on success
-     *      false on error
-     */
     bool checkPowerUp(void);
-
-    
-    /** power Up GPRS module (JP has to be soldered)
-     *  @param  pin pin 9 connected to JP jumper so we can power up and down through software
-     *  @returns
-     *      
-     */
-    void powerUpDown();
-    void powerOff();
-     
-    /** send text SMS
-     *  @param  *number phone number which SMS will be send to
-     *  @param  *data   message that will be send to
-     *  @returns
-     *      false on success
-     *      true on error
-     */
+    bool isPowerOn(void);
+    void powerUpDown(void);
+    void powerOff(void);
+    void powerOn(void);
     bool sendSMS(char* number, char* data);
 
     /** Check if there is any UNREAD SMS: this function DOESN'T change the UNREAD status of the SMS
@@ -99,7 +80,6 @@ public:
      *      -1 on error
      *       0 - there is no SMS with specified status (UNREAD)
      */
-
 	char isSMSunread();
     
     /** read SMS, phone and date if getting a SMS message. It changes SMS status to READ 

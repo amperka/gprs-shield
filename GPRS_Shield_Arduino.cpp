@@ -95,29 +95,47 @@ bool GPRS::checkPowerUp(void)
   return sim900_check_with_cmd("AT\r\n","OK\r\n",CMD);
 }
 
-void GPRS::powerUpDown()
+
+
+bool GPRS::isPowerOn(void)
 {
+  return digitalRead(_stPin);
+}
+
+
+
+void GPRS::powerUpDown() {     // The same sequence is used for switching on and to power off
   pinMode(_pkPin, OUTPUT);
-  if(!digitalRead(_stPin))
-  {
-    digitalWrite(_pkPin, HIGH);
-    delay(3000);
-  }
+  digitalWrite(_pkPin, LOW);
+  delay(1000);
+  digitalWrite(_pkPin, HIGH);
+  delay(2000);
   digitalWrite(_pkPin, LOW);
   delay(3000);
 }
 
-void GPRS::powerOff()
-{
-  pinMode(_pkPin, OUTPUT);
-  if(digitalRead(_stPin))
-  {
-    digitalWrite(_pkPin, HIGH);
-    delay(3000);
+
+
+void GPRS::powerOff(void) {       // Желательно корректно отключать питание, для сохранения переменных
+  long t1 = millis();             // в памяти и для разрегистрации в сети мобильного оператора.
+  sim900_send_cmd("AT+CPOWD=1\r\n"); // Даем команду на выключение
+  while (millis()-t1 < 8000) {       // и в течение ХХХХ милисекунд джем
+    if(!digitalRead(_stPin)) {       // произошло ли выключение.
+      return;                        // Выходим, если отключилось быстрее.
+    }
   }
-  digitalWrite(_pkPin, LOW);
-  delay(3000);
-}   
+  powerUpDown();                     // Иначе передёрним питание 
+}
+
+
+
+void GPRS::powerOn(void) {         
+  if(!digitalRead(_stPin)) {         // Если питание не подано,
+    powerUpDown();                   // то выполним стандартную последовательность сигналов 
+  }      
+}
+
+
 
 bool GPRS::checkSIMStatus(void)
 {
