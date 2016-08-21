@@ -34,9 +34,7 @@
 
 #include "sim900.h"
 
-/** GPRS class.
- *  used to realize GPRS communication
- */ 
+const char OK[]   = "OK\r\n";
  
 enum Protocol {
     CLOSED = 0,
@@ -65,14 +63,13 @@ public:
      *  @return true if connected, false otherwise
      */
 
-    bool init(void);
-
-    bool checkPowerUp(void);
-    bool isPowerOn(void);
-    void powerUpDown(void);
-    void powerOff(void);
-    void powerOn(void);
-    bool sendSMS(char* number, char* data);
+    bool  init(void);
+    bool  isPowerOn(void);
+    void  powerUpDown(void);
+    void  powerOff(void);
+    void  powerOn(void);
+    char* getImei(char* imei);
+    bool  sendSMS(char* number, char* data);
 
     /** Check if there is any UNREAD SMS: this function DOESN'T change the UNREAD status of the SMS
      *  @returns
@@ -112,7 +109,8 @@ public:
      */
     void readSMS();
 
-    bool deleteSMS(int index);
+    bool deleteSMS(int index);       // Удалить SMS по индексу
+    bool deleteSMS(void);            // Удалить все, кроме непрочитанных
 
     /** call someone
      *  @param  number  the phone number which you want to call
@@ -157,13 +155,7 @@ public:
      */
     bool isCallActive(char *number);  
 
-    /** get DateTime from SIM900 (see AT command: AT+CLTS=1) as string
-     *  @param
-     *  @returns
-     *      true on success
-     *      false on error
-     */        
-    bool getDateTime(char *buffer);
+    char* getDateTime(char* buffer);
 
     /** getSignalStrength from SIM900 (see AT command: AT+CSQ)
      *  @returns 

@@ -59,40 +59,20 @@ GPRS::GPRS(uint8_t pkPin, uint8_t stPin, uint8_t rx, uint8_t tx, uint32_t baudRa
 
 bool GPRS::init(void)
 {
-  if(!sim900_check_with_cmd("AT\r\n","OK\r\n",CMD))
-    return false;
-  
-
-  if(!sim900_check_with_cmd("AT+CFUN=1\r\n","OK\r\n",CMD))
-    return false;
-  
-
-  if(!checkSIMStatus()) 
-    return false;
-
-  if (!sim900_check_with_cmd("AT+CNMI?\r\n", "+CNMI: 2,2,0,0,0\r\nOK\r\n",CMD)) {
-    if (!sim900_check_with_cmd("AT+CNMI=2,2,0,0,0\r\n","OK\r\n",CMD)) {
-      return false;
-    }
+  if(!sim900_check_with_cmd("AT\r\n",OK,CMD))                return false;
+  if(!sim900_check_with_cmd("ATE0\r\n",OK,CMD))              return false;
+  if(!sim900_check_with_cmd("AT+CFUN=1\r\n",OK,CMD))         return false;
+  if(!checkSIMStatus())     return false;
+  if (!sim900_check_with_cmd("AT+CNMI?\r\n", "+CNMI: 2,0,2,1,1\r\nOK\r\n",CMD)) {
+    if (!sim900_check_with_cmd("AT+CNMI=2,0,2,1,1\r\n",OK,CMD)) return false;
   }
-
   if (!sim900_check_with_cmd("AT+CMGF?\r\n", "+CMGF: 1\r\nOK\r\n",CMD)) {
-    if (!sim900_check_with_cmd("AT+CMGF=1\r\n","OK\r\n",CMD)) {
-      return false;
-    }
+    if (!sim900_check_with_cmd("AT+CMGF=1\r\n",OK,CMD))      return false;
   }
-
-  if (!sim900_check_with_cmd("AT+CLIP=1\r\n","OK\r\n",CMD)) {
-      return false;
-  }
-
+  if (!sim900_check_with_cmd("AT+CLIP=1\r\n",OK,CMD))        return false;
+  
   delay(5000);
   return true;
-}
-
-bool GPRS::checkPowerUp(void)
-{
-  return sim900_check_with_cmd("AT\r\n","OK\r\n",CMD);
 }
 
 
@@ -104,7 +84,7 @@ bool GPRS::isPowerOn(void)
 
 
 
-void GPRS::powerUpDown() {     // The same sequence is used for switching on and to power off
+void GPRS::powerUpDown(void) {     // The same sequence is used for switching on and to power off
   pinMode(_pkPin, OUTPUT);
   digitalWrite(_pkPin, LOW);
   delay(1000);
@@ -133,6 +113,35 @@ void GPRS::powerOn(void) {
   if(!digitalRead(_stPin)) {         // Если питание не подано,
     powerUpDown();                   // то выполним стандартную последовательность сигналов 
   }      
+}
+
+
+
+char* GPRS::getImei(char* imei) 
+{
+  //                   --> CRLF       =  2
+  //999999999999999    --> 15 + CRLF  = 17
+  //                   --> CRLF       =  2
+  //OK                 --> 2 + CRLF   =  4
+  char tbuf[25];
+  sim900_clean_buffer(tbuf,sizeof(tbuf));
+  char* p;
+  char* s;
+  int   i = 0;
+  sim900_flush_serial();
+  sim900_send_cmd("AT+GSN\r\n");
+  sim900_read_buffer(tbuf,19,DEFAULT_TIMEOUT);
+  if(NULL != ( s = strstr(tbuf,"\r\n")+2 )) {
+    if(NULL != ( p = strstr(s,"\r\n"))){
+      p = s ;
+      while((*p != '\r')&&(i < 15)) {
+          imei[i++] = *(p++);
+      }
+      imei[i] = '\0';
+    }
+  }
+  sim900_wait_for_resp(OK, CMD);
+  return imei;
 }
 
 
@@ -348,6 +357,15 @@ void GPRS::readSMS()
   Serial.write(gprsBuffer);
 }
 
+
+
+bool GPRS::deleteSMS(void)
+{       
+  return sim900_check_with_cmd("AT+CMGD=1,3\r\n",OK,CMD); // Удалить все, кроме непрочитанных
+}
+
+
+
 bool GPRS::deleteSMS(int index)
 {
     //char cmd[16];
@@ -488,35 +506,39 @@ bool GPRS::hangup(void)
     return false;
   }
 
-  bool GPRS::getDateTime(char *buffer)
-  {
-  //AT+CCLK?						--> 8 + CRLF = 10
-  //+CCLK: "14/11/13,21:14:41+04"   --> 29+ CRLF = 31
-  //								--> CRLF     =  2
-  //OK
 
+
+  char* GPRS::getDateTime(char* buffer)
+  {
+    //AT+CCLK?                       --> 8 + CRLF = 10
+    //+CCLK: "14/11/13,21:14:41+04"  --> 29+ CRLF = 31
+    //                               --> CRLF     =  2
+    //OK                             -->          =  4
+  
     byte i = 0;
-    char gprsBuffer[46];
+    char gprsBuffer[40];
     char *p,*s;
+    sim900_flush_serial();
     sim900_send_cmd("AT+CCLK?\r\n");
-    sim900_clean_buffer(gprsBuffer,43);
-    sim900_read_buffer(gprsBuffer,43,DEFAULT_TIMEOUT);
+    sim900_clean_buffer(gprsBuffer,40);
+    sim900_read_buffer(gprsBuffer,32,DEFAULT_TIMEOUT);
     if(NULL != ( s = strstr(gprsBuffer,"+CCLK:"))) {
       s = strstr((char *)(s),"\"");
-        s = s + 1;  //We are in the first phone number character 
-        p = strstr((char *)(s),"\""); //p is last character """
-        if (NULL != s) {
-          i = 0;
-          while (s < p) {
-            buffer[i++] = *(s++);
-          }
-          buffer[i] = '\0';            
+      s = s + 1;  //We are in the first date-time character 
+      p = strstr((char *)(s),"\"")-6; //p is last character minutes
+      if (NULL != s) {
+        i = 0;
+        while (s < p) {
+          buffer[i++] = *(s++);
         }
-        //We are going to flush serial data until OK is recieved
-        return sim900_wait_for_resp("OK\r\n", CMD);
-      }  
-      return false;
-    }
+        buffer[i] = '\0';            
+      }
+    }  
+    sim900_wait_for_resp(OK, CMD);
+    return buffer;
+  }
+  
+
 
     byte GPRS::getSignalStrength() {
       //AT+CSQ: 00,00     --> 13 + CRLF = 15
