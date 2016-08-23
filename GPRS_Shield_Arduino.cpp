@@ -540,6 +540,56 @@ bool GPRS::hangup(void)
   
 
 
+bool GPRS::syncNtp (const char* ntpServer) //Синхронизфция времени в модеме с NTP сервером
+{
+  /*
+  AT+SAPBR=0,1
+  AT+SAPBR=3,1,"CONTYPE","GPRS"
+  AT+SAPBR=3,1,"APN","internet.mts.ru"
+  AT+SAPBR=3,1,"USER","mts"
+  AT+SAPBR=3,1,"PWD","mts"
+  AT+SAPBR=1,1
+  AT+CNTP="pool.ntp.org",3,1,0
+  AT+CNTP
+  AT+SAPBR=0,1
+  */
+   
+   char *p,*s;
+
+   char tmpBuf[56];
+   sim900_flush_serial();
+   sim900_send_cmd("AT+SAPBR=2,1\r\n");               // Запрос о состоянии GPRS соединения
+   sim900_clean_buffer(tmpBuf,sizeof(tmpBuf));
+   sim900_read_buffer(tmpBuf,sizeof(tmpBuf),DEFAULT_TIMEOUT); // Считываем ответ
+   if(NULL != ( s = strstr(tmpBuf,"+SAPBR: 1,"))) {   // находим нужное место
+     char gprsStatus = *(s+10);                       // состояние соединения
+     Serial.println(gprsStatus);
+     if (gprsStatus == '3') {                         // Если не установлено, то установим
+        sim900_check_with_cmd("AT+SAPBR=3,1,\"CONTYPE\",\"GPRS\"\r\n",OK,CMD);
+        sim900_check_with_cmd("AT+SAPBR=3,1,\"APN\",\"internet.mts.ru\"\r\n",OK,CMD);
+        sim900_check_with_cmd("AT+SAPBR=3,1,\"USER\",\"mts\"\r\n"    ,OK,CMD);
+        sim900_check_with_cmd("AT+SAPBR=3,1,\"PWD\",\"mts\"\r\n"     ,OK,CMD);
+        sim900_check_with_cmd("AT+SAPBR=1,1\r\n"                     ,OK,CMD);
+     }
+   }
+   sim900_check_with_cmd("AT+CNTP=\"pool.ntp.org\",3,1,0\r\n"   ,OK,CMD);
+   //sim900_send_cmd(ntpServer);
+   //sim900_send_cmd("\",3,1,0\r\n");
+   //if (!sim900_wait_for_resp(OK,CMD)) return -6;
+   sim900_check_with_cmd("AT+CNTP\r\n"   ,OK,DATA);   // собственно синхронизация.  
+   sim900_wait_for_resp ("+CNTP: ",  DATA,19,15000);  // ждем ответ об успешности 
+   delay(100);
+   sim900_clean_buffer(tmpBuf,sizeof(tmpBuf));
+   sim900_read_buffer(tmpBuf,4);                      // читаем код завершения
+   sim900_check_with_cmd("AT+SAPBR=0,1\r\n",OK,CMD);  // отключаемся
+   Serial.print( "<");
+   Serial.print( tmpBuf);
+   Serial.print( ">");
+   return 1;
+}
+
+
+
     byte GPRS::getSignalStrength() {
       //AT+CSQ: 00,00     --> 13 + CRLF = 15
       //                  --> CRLF     = 2
