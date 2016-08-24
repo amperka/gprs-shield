@@ -155,8 +155,10 @@ public:
      */
     bool isCallActive(char *number);  
 
-    char* getDateTime(char* buffer);                                // Получить время с часом модуля
-    bool  syncNtp (const char* ntpServer = "ru.pool.ntp.org");//Синхронизфция времени модуля с NTP сервером
+    char* getDateTime(char* buffer);                            // Получить время с часов модуля
+    bool  syncNtp (const char* ntpServer = "ru.pool.ntp.org");  // Синхронизация времени модуля с NTP сервером
+    signed char readBalance(char* moneyBalanceBuf, int buflen, int &moneyBalanceInt);
+  
 
     /** getSignalStrength from SIM900 (see AT command: AT+CSQ)
      *  @returns 

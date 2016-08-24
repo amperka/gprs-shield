@@ -590,7 +590,63 @@ bool GPRS::syncNtp (const char* ntpServer) //Синхронизфция врем
 
 
 
-    byte GPRS::getSignalStrength() {
+signed char GPRS::readBalance(char* moneyBalanceBuf, 
+                               int  bufLen,
+                               int& moneyBalanceInt)
+{
+  //AT+CUSD=1,"#100#"                                    = 19
+  //                                                     =  2
+  //                                                     =  2
+  //OK                                          --> CRLF =  4
+  //                                            --> CRLF =  2  
+  //+CUSD: 0,"Balance:45,05r,Limit:0,01r ",64            = 41
+  //                                                итого= 70
+  byte i = 0;
+  char gprsBuffer[70];
+  char *p, *s;
+  signed char rc;
+  sim900_flush_serial();
+  sim900_check_with_cmd("AT+CUSD=1,\"#100#\"\r\n",OK,DATA);
+  sim900_clean_buffer(gprsBuffer,sizeof(gprsBuffer));
+  sim900_read_buffer(gprsBuffer,sizeof(gprsBuffer));
+  if(NULL != ( s = strstr(gprsBuffer,"CUSD:"))) {
+    s = strstr((char *)(s),"\"");
+    s = s + 1;                       // We are in the first character 
+    p = strstr((char *)(s),"\"");    // p is last character 
+    if (NULL != s) {
+      i = 0;
+      while ((s < p) && (i < (bufLen -1))) {
+        moneyBalanceBuf[i++] = *(s++);
+      }
+      moneyBalanceBuf[i] = '\0';            
+    }     // Ответ получен. Теперь попробуем из него вытащить цифры баланса
+    
+    if(NULL != ( s = strstr(moneyBalanceBuf,"Balance:"))) {
+      s = s + 8;
+      p = strstr((char *)(s),"r,");
+      if (NULL != s) {
+        i = 0;
+        while (s < p) {
+          gprsBuffer[i++] = *(s++);
+        }
+        gprsBuffer[i] = '\0';            
+      }
+      moneyBalanceInt = atoi(gprsBuffer);
+      rc = 0;     // результат получен
+    } else {
+      rc = -2;    // в ответе нет баланса
+    } 
+  } else {
+    rc = -4;      // не получен предсказуемый ответ
+  }
+  //sim900_wait_for_resp(OK, CMD);
+  sim900_flush_serial();
+  return rc;
+}
+
+
+
+byte GPRS::getSignalStrength() {
       //AT+CSQ: 00,00     --> 13 + CRLF = 15
       //                  --> CRLF     = 2
       //OK                --> 2 + CRLF = 4
