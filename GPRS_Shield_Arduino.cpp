@@ -57,22 +57,23 @@ GPRS::GPRS(uint8_t pkPin, uint8_t stPin, uint8_t rx, uint8_t tx, uint32_t baudRa
   gprsserial ->begin(baudRate);    
 }
 
-bool GPRS::init(void)
+char GPRS::init(void)
 {
-  if(!sim900_check_with_cmd("AT\r\n",OK,CMD))                return false;
-  if(!sim900_check_with_cmd("ATE0\r\n",OK,CMD))              return false;
-  if(!sim900_check_with_cmd("AT+CFUN=1\r\n",OK,CMD))         return false;
-  if(!checkSIMStatus())     return false;
+  int rc;
+  if(!sim900_check_with_cmd("AT\r\n",OK,CMD))                  {  rc = 22; Serial.println(rc);}
+  if(!sim900_check_with_cmd("ATE0\r\n",OK,CMD))                {  rc = 23; Serial.println(rc);}
+  if(!sim900_check_with_cmd("AT+CFUN=1\r\n",OK,CMD))           {  rc = 24; Serial.println(rc);}
+  if(!checkSIMStatus())                                        {  rc = 25; Serial.println(rc);}
   if (!sim900_check_with_cmd("AT+CNMI?\r\n", "+CNMI: 2,0,2,1,1\r\nOK\r\n",CMD)) {
-    if (!sim900_check_with_cmd("AT+CNMI=2,0,2,1,1\r\n",OK,CMD)) return false;
+    if (!sim900_check_with_cmd("AT+CNMI=2,0,2,1,1\r\n",OK,CMD))  {rc = 26; Serial.println(rc);}
   }
   if (!sim900_check_with_cmd("AT+CMGF?\r\n", "+CMGF: 1\r\nOK\r\n",CMD)) {
-    if (!sim900_check_with_cmd("AT+CMGF=1\r\n",OK,CMD))      return false;
+    if (!sim900_check_with_cmd("AT+CMGF=1\r\n",OK,CMD))          {rc = 6; Serial.println(rc);}
   }
-  if (!sim900_check_with_cmd("AT+CLIP=1\r\n",OK,CMD))        return false;
+  if (!sim900_check_with_cmd("AT+CLIP=1\r\n",OK,CMD))            {rc = 7; Serial.println(rc);}
   
   delay(5000);
-  return true;
+  rc = 0;
 }
 
 
@@ -541,8 +542,7 @@ bool GPRS::hangup(void)
 
 
 bool GPRS::syncNtp (const char* ntpServer) //Синхронизфция времени в модеме с NTP сервером
-{
-  /*
+{ /*
   AT+SAPBR=0,1
   AT+SAPBR=3,1,"CONTYPE","GPRS"
   AT+SAPBR=3,1,"APN","internet.mts.ru"
@@ -563,7 +563,6 @@ bool GPRS::syncNtp (const char* ntpServer) //Синхронизфция врем
    sim900_read_buffer(tmpBuf,sizeof(tmpBuf),DEFAULT_TIMEOUT); // Считываем ответ
    if(NULL != ( s = strstr(tmpBuf,"+SAPBR: 1,"))) {   // находим нужное место
      char gprsStatus = *(s+10);                       // состояние соединения
-     Serial.println(gprsStatus);
      if (gprsStatus == '3') {                         // Если не установлено, то установим
         sim900_check_with_cmd("AT+SAPBR=3,1,\"CONTYPE\",\"GPRS\"\r\n",OK,CMD);
         sim900_check_with_cmd("AT+SAPBR=3,1,\"APN\",\"internet.mts.ru\"\r\n",OK,CMD);
@@ -665,27 +664,28 @@ byte GPRS::getSignalStrength() {
         return result;
     }
 
-//Here is where we ask for APN configuration, with F() so we can save MEMORY
-//bool GPRS::join(const __FlashStringHelper *apn, const __FlashStringHelper *userName, const __FlashStringHelper *passWord)
-    bool GPRS::join(char* apn, char* userName, char* passWord, int timeout)
-    {
+char GPRS::joinGprs(const char* apn, const char* lgn, const char* pwd)
+{
+  char *p,*s;
+  char  tmpBuf[56];
+  char  rc;
+  rc = getGprsStatus(tmpBuf);      // Запрос о состоянии GPRS соединения
+  if (rc != 1)   {                 // Если не установлено, то установим
+      sim900_check_with_cmd("AT+SAPBR=3,1,\"CONTYPE\",\"GPRS\"\r\n",OK,CMD);
+      sim900_check_with_cmd("AT+SAPBR=3,1,\"APN\",\"internet.mts.ru\"\r\n",OK,CMD);
+      sim900_check_with_cmd("AT+SAPBR=3,1,\"USER\",\"mts\"\r\n"    ,OK,CMD);
+      sim900_check_with_cmd("AT+SAPBR=3,1,\"PWD\",\"mts\"\r\n"     ,OK,CMD);
+      sim900_check_with_cmd("AT+SAPBR=1,1\r\n"                     ,OK,CMD);
+      rc = getGprsStatus(tmpBuf);  // Запрос о состоянии GPRS соединения
+  }
+  return rc;
+}
+
+
+/*
      byte i;
      char *p, *s;
      char ipAddr[32];
-/*    if(!sim900_check_with_cmd("AT+CIPSHUT\r\n","SHUT OK\r\n", CMD)) {
-      Serial.write("Error = 1\r\n");
-    return false;
-    }
-    delay(1000);
-*/
-    sim900_send_cmd("AT+CIPSHUT\r\n");
-    delay(500);
-    //Select multiple connection
-    //sim900_check_with_cmd("AT+CIPMUX=1\r\n","OK",DEFAULT_TIMEOUT,CMD);
-
-    //set APN. OLD VERSION
-    //snprintf(cmd,sizeof(cmd),"AT+CSTT=\"%s\",\"%s\",\"%s\"\r\n",_apn,_userName,_passWord);
-    //sim900_check_with_cmd(cmd, "OK\r\n", DEFAULT_TIMEOUT,CMD);
     sim900_send_cmd("AT+CSTT=\"");
     sim900_send_cmd(apn);
     sim900_send_cmd("\",\"");
@@ -694,18 +694,7 @@ byte GPRS::getSignalStrength() {
     sim900_send_cmd(passWord);
     sim900_send_cmd("\"\r\n");
     delay(500);
-    //Brings up wireless connection
 
-    sim900_send_cmd("AT+CIICR\r\n");
-    delay(4000);
-    sim900_wait_for_resp("OK\r\n", CMD);
-    delay(500);
-//    sim900_check_with_cmd("AT+CIICR\r\n","OK\r\n", CMD);
-
-
-    //Get local IP address
-    sim900_send_cmd("AT+CIFSR\r\n");
-    delay(500);
     sim900_clean_buffer(ipAddr,32);
     sim900_read_buffer(ipAddr,32,DEFAULT_TIMEOUT);
 
@@ -738,6 +727,8 @@ byte GPRS::getSignalStrength() {
     Serial.write("Error = 3\r\n");
     return false;
   } 
+*/
+
 
   void GPRS::disconnect()
   {
@@ -810,27 +801,57 @@ sim900_read_buffer(resp, 96, timeout);
     return false;
   }
 
-  bool GPRS::is_connected(void)
-  {
-    char resp[96];
-    sim900_send_cmd("AT+CIPSTATUS\r\n");
-    sim900_read_buffer(resp,sizeof(resp),DEFAULT_TIMEOUT);
-    if(NULL != strstr(resp,"CONNECTED")) {
-        //+CIPSTATUS: 1,0,"TCP","216.52.233.120","80","CONNECTED"
-      return true;
+char GPRS::getGprsStatus(char* ipv4Buf)   
+{
+  //AT+SAPBR=2,1
+  //
+  //+SAPBR: 1,3,"xxx.xxx.xxx.xxx"
+  //
+  //OK
+   
+  char *p, *s;
+  char  rc;
+  char  tmpBuf[56];
+  int   i;
+  sim900_flush_serial();
+  sim900_send_cmd("AT+SAPBR=2,1\r\n");               // Запрос о состоянии GPRS соединения
+  sim900_clean_buffer(tmpBuf,sizeof(tmpBuf));
+  sim900_read_buffer(tmpBuf,sizeof(tmpBuf),DEFAULT_TIMEOUT); // Считываем ответ
+  if(NULL != ( s = strstr(tmpBuf,"+SAPBR: "))) {     // находим нужное место
+    s += 8;                                          // 
+    if(NULL != ( s = strstr((char *)(s),","))) {     // после первой запятой
+      rc = *(s+1) - '0';             // для конвертации в цифру отнять код нуля
+      Serial.println(tmpBuf);
+      Serial.println(*(s+1));
+      Serial.println(int(rc));
+
+      s = strstr((char *)(s),"\"")+1;   // Теперь ищем ip-адрес в кавычках
+      p = strstr((char *)(s),"\"");     // Закрывающая кавычка
+      if ((NULL != p) && (NULL != s)) {
+        i = 0;
+        while (s < p) {
+          ipv4Buf[i++] = *(s++);
+        }
+        ipv4Buf[i] = '\0';            
+      } else {
+        rc = 9;                 // не распознан ip-адрес
+      }
     } else {
-        //+CIPSTATUS: 1,0,"TCP","216.52.233.120","80","CLOSED"
-        //+CIPSTATUS: 0,,"","","","INITIAL"
-      return false;
+      rc = 10;                  // не распознан код состояния
     }
+  } else {
+    rc = 10;                    // не распознан код состояния
   }
+}
+
+
 
   bool GPRS::close()
   {
     // if not connected, return
-    if (!is_connected()) {
-      return true;
-    }
+//    if ( getGprsStatus("                ") == 3) {
+//      return true;
+//    }
     return sim900_check_with_cmd("AT+CIPCLOSE\r\n", "CLOSE OK\r\n", CMD);
   }
 

@@ -63,7 +63,7 @@ public:
      *  @return true if connected, false otherwise
      */
 
-    bool  init(void);
+    char  init(void);
     bool  isPowerOn(void);
     void  powerUpDown(void);
     void  powerOff(void);
@@ -139,27 +139,15 @@ public:
      *      false on error
      */
     bool ifcallNow(void);
-
     bool ifSMSNow(void);
-
     bool ifcallEnd(void);
-
     void callEnd(void);
-
     bool disableCLIPring(void);
-	
-    /** Check if there is a call active and get the phone number in that case
-     *  @returns
-     *      true on success
-     *      false on error
-     */
-    bool isCallActive(char *number);  
-
+	bool isCallActive(char *number);  // Check if call active and get the phone number in that case
     char* getDateTime(char* buffer);                            // Получить время с часов модуля
     bool  syncNtp (const char* ntpServer = "ru.pool.ntp.org");  // Синхронизация времени модуля с NTP сервером
     signed char readBalance(char* moneyBalanceBuf, int buflen, int &moneyBalanceInt);
   
-
     /** getSignalStrength from SIM900 (see AT command: AT+CSQ)
      *  @returns 
      0 — 113 dBm or less
@@ -174,18 +162,12 @@ public:
 //////////////////////////////////////////////////////
 /// GPRS
 //////////////////////////////////////////////////////  
-   /**  Connect the GPRS module to the network.
-     *  @return true if connected, false otherwise
-     */
-	 
-//    bool join(const __FlashStringHelper *apn = 0, const __FlashStringHelper *userName = 0, const __FlashStringHelper *passWord = 0);
-     bool join(char* apn = 0, char* = 0, char* = 0, int timeout = 2 * DEFAULT_TIMEOUT);
+  //  Connect the GPRS module to the network.
+  //  bool join(const __FlashStringHelper *apn = 0, const __FlashStringHelper *userName = 0, const __FlashStringHelper *passWord = 0);
+  char joinGprs(const char* apn, const char* lgn, const char* pwd);
 
-    /** Disconnect the GPRS module from the network
-     *  @returns
-     */
-    void disconnect(void);
-    
+    void disconnect(void);   // Disconnect the GPRS module from the network
+     
     /** Open a tcp/udp connection with the specified host on the specified port
      *  @param socket an endpoint of an inter-process communication flow of GPRS module,for SIM900 module, it is in [0,6]
      *  @param ptl protocol for socket, TCP/UDP can be choosen
@@ -197,21 +179,18 @@ public:
     bool connect(Protocol ptl, const char * host, int port, int timeout = 2 * DEFAULT_TIMEOUT);
 	bool connect(Protocol ptl, const __FlashStringHelper *host, const __FlashStringHelper *port, int timeout = 2 * DEFAULT_TIMEOUT);
 
-    /** Check if a tcp link is active
-     *  @returns true if successful
-     */
-    bool is_connected(void);
-	
-	/** Close a tcp connection
-     *  @returns true if successful
-     */
-    bool close(void);
-	
-    /** check if GPRS module is readable or not
-     *  @returns true if readable
-     */
-    int readable(void);
+  char getGprsStatus(char* ipv4Buf);  // Возвращает статус GPRS соединения:
+                                      // 0 - соединение устанавливается
+                                      // 1 - соединение установлено
+                                      // 2 - соединение закрывается
+                                      // 3 - нет соединения
+                                      // 10 - состояние не распознано
+                                      // ipv4Buf возвращает в формате xxx.xxx.xxx.xxx
 
+    bool close(void);        // Close a tcp connection   *  @returns true if successful 
+    int  readable(void);      // check if GPRS module is readable. @returns true if readable
+
+    
     /** wait a few time to check if GPRS module is readable or not
      *  @param socket socket
      *  @param wait_time time of waiting
