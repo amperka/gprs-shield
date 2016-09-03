@@ -49,8 +49,7 @@ public:
      *  @param number default phone number during mobile communication
      */
 
-    GPRS(uint8_t pkPin=2, uint8_t stPin = 3, uint32_t baudRate = 9600); 
-	 
+    GPRS(uint8_t pkPin=2, uint8_t stPin = 3, uint32_t baudRate = 9600); 	 
     GPRS(uint8_t pkPin, uint8_t stPin, uint8_t rx, uint8_t tx, uint32_t baudRate = 9600 ); 
     
     /** get instance of GPRS class
@@ -63,12 +62,17 @@ public:
      *  @return true if connected, false otherwise
      */
 
-    char  init(void);
+    unsigned char init(void);
     bool  isPowerOn(void);
     void  powerUpDown(void);
     void  powerOff(void);
     void  powerOn(void);
     char* getImei(char* imei);
+    char* getDateTime(char* buffer);                            // Получить время с часов модуля
+    bool  syncNtp (const char* ntpServer = "ru.pool.ntp.org");  // Синхронизация времени модуля с NTP сервером
+    unsigned char readBalance(char* moneyBalanceBuf, int buflen, int &moneyBalanceInt);
+
+
     bool  sendSMS(char* number, char* data);
 
     /** Check if there is any UNREAD SMS: this function DOESN'T change the UNREAD status of the SMS
@@ -108,7 +112,6 @@ public:
      *      false on error
      */
     void readSMS();
-
     bool deleteSMS(int index);       // Удалить SMS по индексу
     bool deleteSMS(void);            // Удалить все, кроме непрочитанных
 
@@ -144,9 +147,6 @@ public:
     void callEnd(void);
     bool disableCLIPring(void);
 	bool isCallActive(char *number);  // Check if call active and get the phone number in that case
-    char* getDateTime(char* buffer);                            // Получить время с часов модуля
-    bool  syncNtp (const char* ntpServer = "ru.pool.ntp.org");  // Синхронизация времени модуля с NTP сервером
-    signed char readBalance(char* moneyBalanceBuf, int buflen, int &moneyBalanceInt);
   
     /** getSignalStrength from SIM900 (see AT command: AT+CSQ)
      *  @returns 
@@ -156,7 +156,7 @@ public:
      31 — 51 dBm or greater
      99 — not known or not detectable
      */
-    byte getSignalStrength();
+    unsigned char getSignalStrength();
     
 
 //////////////////////////////////////////////////////
@@ -164,10 +164,18 @@ public:
 //////////////////////////////////////////////////////  
   //  Connect the GPRS module to the network.
   //  bool join(const __FlashStringHelper *apn = 0, const __FlashStringHelper *userName = 0, const __FlashStringHelper *passWord = 0);
-  char joinGprs(const char* apn, const char* lgn, const char* pwd);
+  unsigned char joinGprs(const char* apn, const char* lgn, const char* pwd);
+  unsigned char getGprsStatus(char* ipv4Buf);  // Возвращает статус GPRS соединения:
+                                      // 0 - соединение устанавливается
+                                      // 1 - соединение установлено
+                                      // 2 - соединение закрывается
+                                      // 3 - нет соединения
+                                      // 10 - состояние не распознано
+                                      // ipv4Buf возвращает в формате xxx.xxx.xxx.xxx
 
-    void disconnect(void);   // Disconnect the GPRS module from the network
-     
+  void disconnectGprs(void);          // Disconnect the GPRS module from the network
+  int  httpGet(char* url, int& dataLen); 
+
     /** Open a tcp/udp connection with the specified host on the specified port
      *  @param socket an endpoint of an inter-process communication flow of GPRS module,for SIM900 module, it is in [0,6]
      *  @param ptl protocol for socket, TCP/UDP can be choosen
@@ -176,19 +184,11 @@ public:
      *  @param timeout wait seconds till connected
      *  @returns true if successful
      */
-    bool connect(Protocol ptl, const char * host, int port, int timeout = 2 * DEFAULT_TIMEOUT);
+  bool connect(Protocol ptl, const char * host, int port, int timeout = 2 * DEFAULT_TIMEOUT);
 	bool connect(Protocol ptl, const __FlashStringHelper *host, const __FlashStringHelper *port, int timeout = 2 * DEFAULT_TIMEOUT);
 
-  char getGprsStatus(char* ipv4Buf);  // Возвращает статус GPRS соединения:
-                                      // 0 - соединение устанавливается
-                                      // 1 - соединение установлено
-                                      // 2 - соединение закрывается
-                                      // 3 - нет соединения
-                                      // 10 - состояние не распознано
-                                      // ipv4Buf возвращает в формате xxx.xxx.xxx.xxx
-
-    bool close(void);        // Close a tcp connection   *  @returns true if successful 
-    int  readable(void);      // check if GPRS module is readable. @returns true if readable
+  bool close(void);        // Close a tcp connection   *  @returns true if successful 
+  int  readable(void);      // check if GPRS module is readable. @returns true if readable
 
     
     /** wait a few time to check if GPRS module is readable or not
