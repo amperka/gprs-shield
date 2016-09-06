@@ -68,10 +68,12 @@ public:
     void  powerOff(void);
     void  powerOn(void);
     char* getImei(char* imei);
-    char* getDateTime(char* buffer);                            // Получить время с часов модуля
-    bool  syncNtp (const char* ntpServer = "ru.pool.ntp.org");  // Синхронизация времени модуля с NTP сервером
-    unsigned char readBalance(char* moneyBalanceBuf, int buflen, int &moneyBalanceInt);
-
+    char* getDateTime(char* buffer);                       // Получить время с часов модуля
+    bool  syncNtp (const char* ntpServer);                 // Синхронизация времени модуля с NTP сервером
+    unsigned char readBalance(const char* moneyRequestBuf,
+                                    char* moneyBalanceBuf, 
+                                    int   buflen, 
+                                    int  &moneyBalanceInt);
 
     bool  sendSMS(char* number, char* data);
 
@@ -163,8 +165,8 @@ public:
 /// GPRS
 //////////////////////////////////////////////////////  
   //  Connect the GPRS module to the network.
-  //  bool join(const __FlashStringHelper *apn = 0, const __FlashStringHelper *userName = 0, const __FlashStringHelper *passWord = 0);
-  unsigned char joinGprs(const char* apn, const char* lgn, const char* pwd);
+  unsigned char joinGprs(char* ipv4Buf, const char* apn, const char* lgn, const char* pwd);
+  unsigned char joinGprs(char* ipv4Buf);
   unsigned char getGprsStatus(char* ipv4Buf);  // Возвращает статус GPRS соединения:
                                       // 0 - соединение устанавливается
                                       // 1 - соединение установлено
@@ -212,14 +214,6 @@ public:
      */
     int send(const char * str, int len);
 
-    /** read data from socket
-     *  @param socket socket
-     *  @param buf buffer that will store the data read from socket
-     *  @param len string length need to read from socket
-     *  @returns bytes that actually read
-     */
-    int recv(char* buf, int len);
-
     /** convert the host to ip
      *  @param host host ip string, ex. 10.11.12.13
      *  @param ip long int ip address, ex. 0x11223344
@@ -239,7 +233,5 @@ private:
 //    SoftwareSerial gprsSerial;
     Stream* stream;
     static GPRS* inst;
-    uint32_t _ip;
-    char ip_string[16]; //XXX.YYY.ZZZ.WWW + \0
 };
 #endif
