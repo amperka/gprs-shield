@@ -1,10 +1,4 @@
 /*  Пример получения времени с внутренних часов gprs-модуля.
-    Если в модуле не установлена батарейка, то после каждого выключения
-    часы сбрасываются в начальное значение.
-    Для установки правильного текущего времени можно синхронизироваться
-    по серверам службы NTP. Для этого в библиотеке есть функция. 
-    Пример её использования смотри в скатче
-    gprs_ntp_datetime
 */
 
 #include <GPRS_Shield_Arduino.h>
@@ -13,7 +7,14 @@
 #define PIN_ST         9           // контакт состояния GPRG модуля
 #define BAUDRATE  115200           // частота обмена данными
 
-GPRS   gprsModul(PIN_PK, PIN_ST, BAUDRATE);   // создаём объект
+GPRS   gprsModul(PIN_PK, PIN_ST, BAUDRATE); // создаём объект
+
+//const char apn[]       = "internet.mts.ru"; // Для билайна: "home.beeline.ru", МТС: "internet.mts.ru" megafon: "internet"
+//const char lgn[]       = "mts";             // Логин=Пароль MTS: "mts" megafon: "gdata"
+//const char balanceReq[]= "#100#";           // USSD номер проверки балланса
+const char ntpService[]= "pool.ntp.org";    // Сервер NTP-синхронизации
+
+
 
 void setup() 
 {
@@ -36,7 +37,14 @@ void loop()
   Serial.print  (" On");
   //
   Serial.print  (";   init... ");
-  rc = gprsModul.init();
+  sim900_clean_buffer(tmpBuf, sizeof(tmpBuf));
+  rc = gprsModul.init(tmpBuf);
+  Serial.print  ("rc=");
+  Serial.print  (int(rc));
+  //
+  sim900_clean_buffer(tmpBuf, sizeof(tmpBuf));
+  Serial.print  (";    ntpSync...");
+  rc = gprsModul.syncNtp(ntpService);
   Serial.print  ("rc=");
   Serial.print  (int(rc));
   //
