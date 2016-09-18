@@ -34,9 +34,7 @@
 
 #include "sim900.h"
 
-/** GPRS class.
- *  used to realize GPRS communication
- */ 
+const char OK[]   = "OK\r\n";
  
 enum Protocol {
     CLOSED = 0,
@@ -47,51 +45,74 @@ enum Protocol {
 class GPRS
 {
 public:
-    /** Create GPRS instance
-     *  @param number default phone number during mobile communication
-     */
+  /** Create GPRS instance
+   *  @param number default phone number during mobile communication
+   */
+  GPRS(uint8_t pkPin=2, uint8_t stPin = 3, uint32_t baudRate = 9600); 	 
+  GPRS(uint8_t pkPin, uint8_t stPin, uint8_t rx, uint8_t tx, uint32_t baudRate = 9600 ); 
+  
+  /** get instance of GPRS class
+   */
+  static GPRS* getInstance() {
+      return inst;
+  };
 
-    GPRS(uint8_t pkPin=2, uint8_t stPin = 3, uint32_t baudRate = 9600); 
-	 
-    GPRS(uint8_t pkPin, uint8_t stPin, uint8_t rx, uint8_t tx, uint32_t baudRate = 9600 ); 
-    
-    /** get instance of GPRS class
-     */
-    static GPRS* getInstance() {
-        return inst;
-    };
+///////////////////////////////////////////////////////////////////////////////
+///                                                                         ///
+///                               POWER                                     ///
+///                                                                         ///
+///////////////////////////////////////////////////////////////////////////////
 
-    /** initialize GPRS module including SIM card check & signal strength
-     *  @return true if connected, false otherwise
-     */
+  void  powerOn(void);
+  void  powerOff(void);
+  void  powerUpDown(void);
+  bool  isPowerOn(void);
 
-    bool init(void);
+///////////////////////////////////////////////////////////////////////////////
+///                                                                         ///
+///                              INITIALIZATION                             ///
+///                                                                         ///
+///////////////////////////////////////////////////////////////////////////////
 
-   
-    /** check if GPRS module is powered on or not
-     *  @returns
-     *      true on success
-     *      false on error
-     */
-    bool checkPowerUp(void);
+  unsigned char init(void);
+  unsigned char init(char* ipv4Buf);
+  unsigned char init(char* ipv4Buf,
+               const char* apn, 
+               const char* lgn, 
+               const char* pwd);
+  unsigned char initialSetting(void);
 
-    
-    /** power Up GPRS module (JP has to be soldered)
-     *  @param  pin pin 9 connected to JP jumper so we can power up and down through software
-     *  @returns
-     *      
-     */
-    void powerUpDown();
-    void powerOff();
-     
-    /** send text SMS
-     *  @param  *number phone number which SMS will be send to
-     *  @param  *data   message that will be send to
-     *  @returns
-     *      false on success
-     *      true on error
-     */
-    bool sendSMS(char* number, char* data);
+///////////////////////////////////////////////////////////////////////////////
+///                                                                         ///
+///                               TOOLS                                     ///
+///                                                                         ///
+///////////////////////////////////////////////////////////////////////////////
+
+  char* getImei(char* imei);
+  char* getDateTime(char* buffer);             // Получить время с часов модуля
+  unsigned char syncNtp (const char* ntpServer);  // Синхронизация времени модуля с NTP сервером
+  unsigned char readBalance(const char* moneyRequestBuf,
+                                  char* moneyBalanceBuf, 
+                                  int   buflen, 
+                                  int  &moneyBalanceInt);
+  unsigned char getSignalStrength();
+          /** getSignalStrength from SIM900 (see AT command: AT+CSQ)
+           *  @returns 
+           0 — 113 dBm or less
+           1 — 111 dBm
+           2...30 — 109... 53 dBm
+           31 — 51 dBm or greater
+           99 — not known or not detectable
+           */
+  bool checkSIMStatus(void);
+
+///////////////////////////////////////////////////////////////////////////////
+///                                                                         ///
+///                                SMS                                      ///
+///                                                                         ///
+///////////////////////////////////////////////////////////////////////////////
+
+   bool  sendSMS(char* number, char* data);
 
     /** Check if there is any UNREAD SMS: this function DOESN'T change the UNREAD status of the SMS
      *  @returns
@@ -99,7 +120,6 @@ public:
      *      -1 on error
      *       0 - there is no SMS with specified status (UNREAD)
      */
-
 	char isSMSunread();
     
     /** read SMS, phone and date if getting a SMS message. It changes SMS status to READ 
@@ -131,86 +151,69 @@ public:
      *      false on error
      */
     void readSMS();
-
-    bool deleteSMS(int index);
-
-    /** call someone
-     *  @param  number  the phone number which you want to call
-     *  @returns
-     *      true on success
-     *      false on error
-     */
-    bool callUp(char* number);
-
-    /** auto answer if coming a call
-     *  @returns
-     */    
-    void answer(void);
-    
-    /** hang up if coming a call
-     *  @returns
-     *      true on success
-     *      false on error
-     */    
-    bool hangup(void);  
-
-    /** Disable +CLIP notification when an incoming call is active, RING text is always shown. See isCallActive function
-     *  This is done in order no to overload serial outputCheck if there is a call active and get the phone number in that case
-     *  @returns
-     *      true on success
-     *      false on error
-     */
-    bool ifcallNow(void);
-
+    bool deleteSMS(int index);       // Удалить SMS по индексу
+    bool deleteSMS(void);            // Удалить все, кроме непрочитанных
     bool ifSMSNow(void);
 
-    bool ifcallEnd(void);
 
-    void callEnd(void);
 
-    bool disableCLIPring(void);
-	
-    /** Check if there is a call active and get the phone number in that case
-     *  @returns
-     *      true on success
-     *      false on error
-     */
-    bool isCallActive(char *number);  
+///////////////////////////////////////////////////////////////////////////////
+///                                                                         ///
+///                                RINGS                                    ///
+///                                                                         ///
+///////////////////////////////////////////////////////////////////////////////
 
-    /** get DateTime from SIM900 (see AT command: AT+CLTS=1) as string
-     *  @param
-     *  @returns
-     *      true on success
-     *      false on error
-     */        
-    bool getDateTime(char *buffer);
+  /** call someone
+   *  @param  number  the phone number which you want to call
+   *  @returns
+   *      true on success
+   *      false on error
+   */
+  bool callUp(char* number);
+  /** auto answer if coming a call
+   *  @returns
+   */    
+  void answer(void);
+  
+  /** hang up if coming a call
+   *  @returns
+   *      true on success
+   *      false on error
+   */    
+  bool hangup(void);  
+  /** Disable +CLIP notification when an incoming call is active, RING text is always shown. See isCallActive function
+   *  This is done in order no to overload serial outputCheck if there is a call active and get the phone number in that case
+   *  @returns
+   *      true on success
+   *      false on error
+   */
+  bool ifcallNow(void);
+  bool ifcallEnd(void);
+  void callEnd(void);
+  bool disableCLIPring(void);
+	bool isCallActive(char *number);  // Check if call active and get the phone number in that case
+  
+  
 
-    /** getSignalStrength from SIM900 (see AT command: AT+CSQ)
-     *  @returns 
-     0 — 113 dBm or less
-     1 — 111 dBm
-     2...30 — 109... 53 dBm
-     31 — 51 dBm or greater
-     99 — not known or not detectable
-     */
-    byte getSignalStrength();
-    
+///////////////////////////////////////////////////////////////////////////////
+///                                                                         ///
+///                                   GPRS                                  ///  
+///                                                                         ///
+///////////////////////////////////////////////////////////////////////////////  
+  //  Connect the GPRS module to the network.
+  unsigned char joinGprs(char* ipv4Buf, const char* apn, const char* lgn, const char* pwd);
+  unsigned char joinGprs(char* ipv4Buf);
+  unsigned char getGprsStatus(char* ipv4Buf);  // Возвращает статус GPRS соединения:
+                                      // 0 - соединение устанавливается
+                                      // 1 - соединение установлено
+                                      // 2 - соединение закрывается
+                                      // 3 - нет соединения
+                                      // 10 - состояние не распознано
+                                      // ipv4Buf возвращает в формате xxx.xxx.xxx.xxx
 
-//////////////////////////////////////////////////////
-/// GPRS
-//////////////////////////////////////////////////////  
-   /**  Connect the GPRS module to the network.
-     *  @return true if connected, false otherwise
-     */
-	 
-//    bool join(const __FlashStringHelper *apn = 0, const __FlashStringHelper *userName = 0, const __FlashStringHelper *passWord = 0);
-     bool join(char* apn = 0, char* = 0, char* = 0, int timeout = 2 * DEFAULT_TIMEOUT);
+  void disconnectGprs(void);          // Disconnect the GPRS module from the network
+  int  httpGet(char* url, int& dataLen); 
 
-    /** Disconnect the GPRS module from the network
-     *  @returns
-     */
-    void disconnect(void);
-    
     /** Open a tcp/udp connection with the specified host on the specified port
      *  @param socket an endpoint of an inter-process communication flow of GPRS module,for SIM900 module, it is in [0,6]
      *  @param ptl protocol for socket, TCP/UDP can be choosen
@@ -219,24 +222,13 @@ public:
      *  @param timeout wait seconds till connected
      *  @returns true if successful
      */
-    bool connect(Protocol ptl, const char * host, int port, int timeout = 2 * DEFAULT_TIMEOUT);
+  bool connect(Protocol ptl, const char * host, int port, int timeout = 2 * DEFAULT_TIMEOUT);
 	bool connect(Protocol ptl, const __FlashStringHelper *host, const __FlashStringHelper *port, int timeout = 2 * DEFAULT_TIMEOUT);
 
-    /** Check if a tcp link is active
-     *  @returns true if successful
-     */
-    bool is_connected(void);
-	
-	/** Close a tcp connection
-     *  @returns true if successful
-     */
-    bool close(void);
-	
-    /** check if GPRS module is readable or not
-     *  @returns true if readable
-     */
-    int readable(void);
+  bool close(void);        // Close a tcp connection   *  @returns true if successful 
+  int  readable(void);      // check if GPRS module is readable. @returns true if readable
 
+    
     /** wait a few time to check if GPRS module is readable or not
      *  @param socket socket
      *  @param wait_time time of waiting
@@ -258,14 +250,6 @@ public:
      */
     int send(const char * str, int len);
 
-    /** read data from socket
-     *  @param socket socket
-     *  @param buf buffer that will store the data read from socket
-     *  @param len string length need to read from socket
-     *  @returns bytes that actually read
-     */
-    int recv(char* buf, int len);
-
     /** convert the host to ip
      *  @param host host ip string, ex. 10.11.12.13
      *  @param ip long int ip address, ex. 0x11223344
@@ -277,15 +261,11 @@ public:
     unsigned long getIPnumber();
     
 private:
-    bool checkSIMStatus(void);
     uint8_t _stPin = 3;
     uint8_t _pkPin = 2;
     
     uint32_t str_to_ip(const char* str);
-//    SoftwareSerial gprsSerial;
     Stream* stream;
     static GPRS* inst;
-    uint32_t _ip;
-    char ip_string[16]; //XXX.YYY.ZZZ.WWW + \0
 };
 #endif
