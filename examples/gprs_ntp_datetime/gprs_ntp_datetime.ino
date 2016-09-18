@@ -12,7 +12,7 @@ GPRS   gprsModul(PIN_PK, PIN_ST, BAUDRATE); // создаём объект
 //const char apn[]       = "internet.mts.ru"; // Для билайна: "home.beeline.ru", МТС: "internet.mts.ru" megafon: "internet"
 //const char lgn[]       = "mts";             // Логин=Пароль MTS: "mts" megafon: "gdata"
 //const char balanceReq[]= "#100#";           // USSD номер проверки балланса
-const char ntpService[]= "pool.ntp.org";    // Сервер NTP-синхронизации
+const char ntpService[]= "pool.ntp.org";      // Сервер NTP-синхронизации
 
 
 

@@ -40,10 +40,14 @@ void  sim900_init(void * uart_device)
     serialSIM900 = (Stream*)uart_device;
 }
 
+
+
 int sim900_check_readable()
 {
     return serialSIM900->available();
 }
+
+
 
 int sim900_wait_readable (int wait_time)
 {
@@ -60,12 +64,16 @@ int sim900_wait_readable (int wait_time)
     return dataLen;
 }
 
+
+
 void sim900_flush_serial()
 {
     while(sim900_check_readable()){
         char c = serialSIM900->read();
     }
 }
+
+
 
 void sim900_read_buffer(char *buffer, int count, unsigned int timeout, unsigned int chartimeout)
 {
@@ -91,6 +99,8 @@ void sim900_read_buffer(char *buffer, int count, unsigned int timeout, unsigned 
     }
 }
 
+
+
 void sim900_clean_buffer(char *buffer, int count)
 {
     for(int i=0; i < count; i++) {
@@ -98,16 +108,22 @@ void sim900_clean_buffer(char *buffer, int count)
     }
 }
 
+
+
 //HACERR quitar esta funcion ?
 void sim900_send_byte(uint8_t data)
 {
 	serialSIM900->write(data);
 }
 
+
+
 void sim900_send_char(const char c)
 {
 	serialSIM900->write(c);
 }
+
+
 
 void sim900_send_cmd(const char* cmd)
 {
@@ -116,6 +132,8 @@ void sim900_send_cmd(const char* cmd)
         sim900_send_byte(cmd[i]);
     }
 }
+
+
 
 void sim900_send_cmd(const __FlashStringHelper* cmd)
 {
@@ -126,21 +144,29 @@ void sim900_send_cmd(const __FlashStringHelper* cmd)
   }
 }
 
+
+
 void sim900_send_cmd_P(const char* cmd)
 {
   while (pgm_read_byte(cmd) != 0x00)
     sim900_send_byte(pgm_read_byte(cmd++));  
 }
 
+
+
 void sim900_send_AT(void)
 {
     sim900_check_with_cmd(F("AT\r\n"),"OK",CMD);
 }
 
+
+
 void sim900_send_End_Mark(void)
 {
     sim900_send_byte((char)26);
 }
+
+
 
 boolean sim900_wait_for_resp(const char* resp, DataType type, unsigned int timeout, unsigned int chartimeout)
 {
@@ -166,9 +192,13 @@ boolean sim900_wait_for_resp(const char* resp, DataType type, unsigned int timeo
         
     }
     //If is a CMD, we will finish to read buffer.
-    if(type == CMD) sim900_flush_serial();
+    if(type == CMD) {            // Нужна небольшая пауза, иначе очистка порта
+        delay(10);               // может завериться раньше, чем закончится вывод в порт.
+        sim900_flush_serial();
+    }
     return true;   
 }
+
 
 
 boolean sim900_check_with_cmd(const char* cmd, const char *resp, DataType type, unsigned int timeout, unsigned int chartimeout)
@@ -176,6 +206,8 @@ boolean sim900_check_with_cmd(const char* cmd, const char *resp, DataType type, 
     sim900_send_cmd(cmd);
     return sim900_wait_for_resp(resp,type,timeout,chartimeout);
 }
+
+
 
 //HACERR que tambien la respuesta pueda ser FLASH STRING
 boolean sim900_check_with_cmd(const __FlashStringHelper* cmd, const char *resp, DataType type, unsigned int timeout, unsigned int chartimeout)

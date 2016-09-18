@@ -12,7 +12,7 @@ char moneyBalanceBuf[32];          // Строка ответа о текуще�
 
 //const char apn[]       = "internet.mts.ru"; // Для билайна: "home.beeline.ru", МТС: "internet.mts.ru" megafon: "internet"
 //const char lgn[]       = "mts";             // Логин=Пароль MTS: "mts" megafon: "gdata"
-const char balanceReq[]= "#100#";           // USSD номер проверки балланса
+const char balanceReq[]= "#100#";             // USSD номер проверки балланса
 
 
 
@@ -43,7 +43,7 @@ void loop()
   //
   sim900_clean_buffer(tmpBuf, sizeof(tmpBuf));
   Serial.print  (";   readBalance");
-  rc = gprsModul.readBalance(balanceReq, moneyBalanceBuf, sizeof(moneyBalanceBuf), moneyBalanceInt);
+  rc = gprsModul.readBalance(balanceReq, moneyBalanceBuf, sizeof(moneyBalanceBuf)-1, moneyBalanceInt);
   Serial.print  (" rc=");
   Serial.print  (int(rc));
   //
