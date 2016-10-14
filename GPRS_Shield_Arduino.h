@@ -1,7 +1,7 @@
 /*
- * GPRS_Shield_Arduino.h 
- * A library for SeeedStudio seeeduino GPRS shield 
- *  
+ * GPRS_Shield_Arduino.h
+ * A library for SeeedStudio seeeduino GPRS shield
+ *
  * Copyright (c) 2015 seeed technology inc.
  * Website    : www.seeed.cc
  * Author     : lawliet zou
@@ -32,18 +32,19 @@
 #ifndef __GPRS_SHIELD_ARDUINO_H__
 #define __GPRS_SHIELD_ARDUINO_H__
 
+#include <HardwareSerial.h>
 #include "sim900.h"
 
 /** GPRS class.
  *  used to realize GPRS communication
- */ 
- 
+ */
+
 enum Protocol {
     CLOSED = 0,
     TCP    = 1,
     UDP    = 2,
 };
- 
+
 class GPRS
 {
 public:
@@ -51,10 +52,12 @@ public:
      *  @param number default phone number during mobile communication
      */
 
-    GPRS(uint8_t pkPin=2, uint8_t stPin = 3, uint32_t baudRate = 9600); 
-	 
-    GPRS(uint8_t pkPin, uint8_t stPin, uint8_t rx, uint8_t tx, uint32_t baudRate = 9600 ); 
-    
+    GPRS(uint8_t pkPin=2, uint8_t stPin = 3, uint32_t baudRate = 9600);
+
+    GPRS(uint8_t pkPin=2, uint8_t stPin = 3, HardwareSerial* serial,  uint32_t baudRate = 9600);
+
+    GPRS(uint8_t pkPin, uint8_t stPin, uint8_t rx, uint8_t tx, uint32_t baudRate = 9600 );
+
     /** get instance of GPRS class
      */
     static GPRS* getInstance() {
@@ -67,7 +70,7 @@ public:
 
     bool init(void);
 
-   
+
     /** check if GPRS module is powered on or not
      *  @returns
      *      true on success
@@ -75,15 +78,15 @@ public:
      */
     bool checkPowerUp(void);
 
-    
+
     /** power Up GPRS module (JP has to be soldered)
      *  @param  pin pin 9 connected to JP jumper so we can power up and down through software
      *  @returns
-     *      
+     *
      */
     void powerUpDown();
     void powerOff();
-     
+
     /** send text SMS
      *  @param  *number phone number which SMS will be send to
      *  @param  *data   message that will be send to
@@ -101,8 +104,8 @@ public:
      */
 
 	char isSMSunread();
-    
-    /** read SMS, phone and date if getting a SMS message. It changes SMS status to READ 
+
+    /** read SMS, phone and date if getting a SMS message. It changes SMS status to READ
      *  @param  messageIndex  SIM position to read
      *  @param  message  buffer used to get SMS message
      *  @param  length  length of message buffer
@@ -112,7 +115,7 @@ public:
      *      true on success
      *      false on error
      */
-    void readSMS(char *message, char *phone, char *datetime); 
+    void readSMS(char *message, char *phone, char *datetime);
 
     /** read SMS if getting a SMS message
      *  @param  buffer  buffer that get from GPRS module(when getting a SMS, GPRS module will return a buffer array)
@@ -144,15 +147,15 @@ public:
 
     /** auto answer if coming a call
      *  @returns
-     */    
+     */
     void answer(void);
-    
+
     /** hang up if coming a call
      *  @returns
      *      true on success
      *      false on error
-     */    
-    bool hangup(void);  
+     */
+    bool hangup(void);
 
     /** Disable +CLIP notification when an incoming call is active, RING text is always shown. See isCallActive function
      *  This is done in order no to overload serial outputCheck if there is a call active and get the phone number in that case
@@ -169,24 +172,24 @@ public:
     void callEnd(void);
 
     bool disableCLIPring(void);
-	
+
     /** Check if there is a call active and get the phone number in that case
      *  @returns
      *      true on success
      *      false on error
      */
-    bool isCallActive(char *number);  
+    bool isCallActive(char *number);
 
     /** get DateTime from SIM900 (see AT command: AT+CLTS=1) as string
      *  @param
      *  @returns
      *      true on success
      *      false on error
-     */        
+     */
     bool getDateTime(char *buffer);
 
     /** getSignalStrength from SIM900 (see AT command: AT+CSQ)
-     *  @returns 
+     *  @returns
      0 — 113 dBm or less
      1 — 111 dBm
      2...30 — 109... 53 dBm
@@ -194,15 +197,15 @@ public:
      99 — not known or not detectable
      */
     byte getSignalStrength();
-    
+
 
 //////////////////////////////////////////////////////
 /// GPRS
-//////////////////////////////////////////////////////  
+//////////////////////////////////////////////////////
    /**  Connect the GPRS module to the network.
      *  @return true if connected, false otherwise
      */
-	 
+
 //    bool join(const __FlashStringHelper *apn = 0, const __FlashStringHelper *userName = 0, const __FlashStringHelper *passWord = 0);
      bool join(char* apn = 0, char* = 0, char* = 0, int timeout = 2 * DEFAULT_TIMEOUT);
 
@@ -210,7 +213,7 @@ public:
      *  @returns
      */
     void disconnect(void);
-    
+
     /** Open a tcp/udp connection with the specified host on the specified port
      *  @param socket an endpoint of an inter-process communication flow of GPRS module,for SIM900 module, it is in [0,6]
      *  @param ptl protocol for socket, TCP/UDP can be choosen
@@ -226,12 +229,12 @@ public:
      *  @returns true if successful
      */
     bool is_connected(void);
-	
+
 	/** Close a tcp connection
      *  @returns true if successful
      */
     bool close(void);
-	
+
     /** check if GPRS module is readable or not
      *  @returns true if readable
      */
@@ -271,16 +274,16 @@ public:
      *  @param ip long int ip address, ex. 0x11223344
      *  @returns true if successful
      */
-    //NOT USED bool gethostbyname(const char* host, uint32_t* ip); 
-    
+    //NOT USED bool gethostbyname(const char* host, uint32_t* ip);
+
     char* getIPAddress();
     unsigned long getIPnumber();
-    
+
 private:
     bool checkSIMStatus(void);
     uint8_t _stPin = 3;
     uint8_t _pkPin = 2;
-    
+
     uint32_t str_to_ip(const char* str);
 //    SoftwareSerial gprsSerial;
     Stream* stream;
