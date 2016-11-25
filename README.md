@@ -7,10 +7,6 @@ GPRS Shield
 Установка
 =========
 
-Скачайте последний релиз библиотеки:
-
-<a class="btn btn-sm btn-primary" href="https://github.com/amperka/gprs-shield/releases/download/v1.1/GPRSShield-1.1.zip">Скачать GPRS Shield v1.1</a>
-
 В Arduino IDE выберите пункт меню «Скетч» → «Импортировать библиотеку» →
 «Добавить библиотеку…». В появившемся окне выберите скачаный архив с
 библиотекой. Установка завершена.
