@@ -5,9 +5,11 @@
 // она нужна для работы библиотеки GPRS_Shield_Arduino
 #include <SoftwareSerial.h>
  
-// создаём объект класса GPRS
-// с помощью него будем давать команды GPRS шилду
-GPRS gprs;
+// создаём объект класса GPRS и передаём в него объект Serial1 
+GPRS gprs(Serial1);
+// можно указать дополнительные параметры — пины PK и ST
+// по умолчанию: PK = 2, ST = 3
+// GPRS gprs(Serial1, 2, 3);
  
 void setup()
 {
