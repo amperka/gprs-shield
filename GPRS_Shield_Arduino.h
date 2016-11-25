@@ -32,7 +32,6 @@
 #ifndef __GPRS_SHIELD_ARDUINO_H__
 #define __GPRS_SHIELD_ARDUINO_H__
 
-#include <HardwareSerial.h>
 #include "sim900.h"
 
 /** GPRS class.
@@ -49,14 +48,9 @@ class GPRS
 {
 public:
     /** Create GPRS instance
-     *  @param number default phone number during mobile communication
      */
 
-    GPRS(uint8_t pkPin=2, uint8_t stPin = 3, uint32_t baudRate = 9600);
-
-    GPRS(uint8_t pkPin=2, uint8_t stPin = 3, HardwareSerial* serial,  uint32_t baudRate = 9600);
-
-    GPRS(uint8_t pkPin, uint8_t stPin, uint8_t rx, uint8_t tx, uint32_t baudRate = 9600 );
+    GPRS(Stream& serial, uint8_t pkPin, uint8_t stPin);
 
     /** get instance of GPRS class
      */
@@ -103,7 +97,7 @@ public:
      *       0 - there is no SMS with specified status (UNREAD)
      */
 
-	char isSMSunread();
+    char isSMSunread();
 
     /** read SMS, phone and date if getting a SMS message. It changes SMS status to READ
      *  @param  messageIndex  SIM position to read
@@ -223,14 +217,14 @@ public:
      *  @returns true if successful
      */
     bool connect(Protocol ptl, const char * host, int port, int timeout = 2 * DEFAULT_TIMEOUT);
-	bool connect(Protocol ptl, const __FlashStringHelper *host, const __FlashStringHelper *port, int timeout = 2 * DEFAULT_TIMEOUT);
+    bool connect(Protocol ptl, const __FlashStringHelper *host, const __FlashStringHelper *port, int timeout = 2 * DEFAULT_TIMEOUT);
 
     /** Check if a tcp link is active
      *  @returns true if successful
      */
     bool is_connected(void);
 
-	/** Close a tcp connection
+    /** Close a tcp connection
      *  @returns true if successful
      */
     bool close(void);

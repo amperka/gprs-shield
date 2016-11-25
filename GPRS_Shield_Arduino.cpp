@@ -32,69 +32,46 @@
 #include <stdio.h>
 #include <HardwareSerial.h>
 #include "GPRS_Shield_Arduino.h"
-#include "SoftwareSerial.h"
 
 GPRS* GPRS::inst;
 
-GPRS::GPRS(uint8_t pkPin, uint8_t stPin, uint32_t baudRate)
+GPRS::GPRS(Stream& serial, uint8_t pkPin, uint8_t stPin)
 {
   _stPin = stPin;
   _pkPin = pkPin;
 
   inst = this;
-  sim900_init(&SERIAL_PORT_HARDWARE);
-  SERIAL_PORT_HARDWARE.begin(baudRate);
-}
 
-
-GPRS::GPRS(uint8_t pkPin=2, uint8_t stPin = 3, HardwareSerial* serial, uint32_t baudRate = 9600);
-{
-  _stPin = stPin;
-  _pkPin = pkPin;
-
-  inst = this;
-  sim900_init(&serial);
-  serial.begin(baudRate);
-}
-
-GPRS::GPRS(uint8_t pkPin, uint8_t stPin, uint8_t rx, uint8_t tx, uint32_t baudRate)
-{
-  _stPin = stPin;
-  _pkPin = pkPin;
-
-  inst = this;
-  SoftwareSerial* gprsserial = new SoftwareSerial(rx, tx);
-  stream = gprsserial ;
+  stream = &serial;
   sim900_init(stream);
-  gprsserial ->begin(baudRate);
 }
 
 bool GPRS::init(void)
 {
-  if(!sim900_check_with_cmd("AT\r\n","OK\r\n",CMD))
+  if (!sim900_check_with_cmd("AT\r\n","OK\r\n",CMD))
     return false;
 
 
-  if(!sim900_check_with_cmd("AT+CFUN=1\r\n","OK\r\n",CMD))
+  if (!sim900_check_with_cmd("AT+CFUN=1\r\n","OK\r\n",CMD))
     return false;
 
 
-  if(!checkSIMStatus())
+  if (!checkSIMStatus())
     return false;
 
-  if (!sim900_check_with_cmd("AT+CNMI?\r\n", "+CNMI: 2,2,0,0,0\r\nOK\r\n",CMD)) {
-    if (!sim900_check_with_cmd("AT+CNMI=2,2,0,0,0\r\n","OK\r\n",CMD)) {
+  if (!sim900_check_with_cmd("AT+CNMI?\r\n", "+CNMI: 2,2,0,0,0\r\nOK\r\n", CMD)) {
+    if (!sim900_check_with_cmd("AT+CNMI=2,2,0,0,0\r\n","OK\r\n", CMD)) {
       return false;
     }
   }
 
-  if (!sim900_check_with_cmd("AT+CMGF?\r\n", "+CMGF: 1\r\nOK\r\n",CMD)) {
-    if (!sim900_check_with_cmd("AT+CMGF=1\r\n","OK\r\n",CMD)) {
+  if (!sim900_check_with_cmd("AT+CMGF?\r\n", "+CMGF: 1\r\nOK\r\n", CMD)) {
+    if (!sim900_check_with_cmd("AT+CMGF=1\r\n","OK\r\n", CMD)) {
       return false;
     }
   }
 
-  if (!sim900_check_with_cmd("AT+CLIP=1\r\n","OK\r\n",CMD)) {
+  if (!sim900_check_with_cmd("AT+CLIP=1\r\n","OK\r\n", CMD)) {
       return false;
   }
 
@@ -102,16 +79,13 @@ bool GPRS::init(void)
   return true;
 }
 
-bool GPRS::checkPowerUp(void)
-{
-  return sim900_check_with_cmd("AT\r\n","OK\r\n",CMD);
+bool GPRS::checkPowerUp(void) {
+    return sim900_check_with_cmd("AT\r\n","OK\r\n", CMD);
 }
 
-void GPRS::powerUpDown()
-{
+void GPRS::powerUpDown() {
   pinMode(_pkPin, OUTPUT);
-  if(!digitalRead(_stPin))
-  {
+  if (!digitalRead(_stPin)) {
     digitalWrite(_pkPin, HIGH);
     delay(3000);
   }
@@ -119,10 +93,9 @@ void GPRS::powerUpDown()
   delay(3000);
 }
 
-void GPRS::powerOff()
-{
+void GPRS::powerOff(){
   pinMode(_pkPin, OUTPUT);
-  if(digitalRead(_stPin))
+  if (digitalRead(_stPin))
   {
     digitalWrite(_pkPin, HIGH);
     delay(3000);
