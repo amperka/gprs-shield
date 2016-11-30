@@ -74,8 +74,6 @@ bool GPRS::init(void)
   if (!sim900_check_with_cmd("AT+CLIP=1\r\n","OK\r\n", CMD)) {
       return false;
   }
-
-  delay(5000);
   return true;
 }
 
@@ -83,26 +81,27 @@ bool GPRS::checkPowerUp(void) {
     return sim900_check_with_cmd("AT\r\n","OK\r\n", CMD);
 }
 
-void GPRS::powerUpDown() {
-  pinMode(_pkPin, OUTPUT);
-  if (!digitalRead(_stPin)) {
-    digitalWrite(_pkPin, HIGH);
+// power Up GPRS Shield
+void GPRS::powerOn() {
+    pinMode(_pkPin, OUTPUT);
+    if (!digitalRead(_stPin)) {
+        digitalWrite(_pkPin, HIGH);
+        delay(3000);
+    }
+    digitalWrite(_pkPin, LOW);
     delay(3000);
-  }
-  digitalWrite(_pkPin, LOW);
-  delay(3000);
 }
 
-void GPRS::powerOff(){
-  pinMode(_pkPin, OUTPUT);
-  if (digitalRead(_stPin))
-  {
-    digitalWrite(_pkPin, HIGH);
+// power Off GPRS Shield
+void GPRS::powerOff() {
+    pinMode(_pkPin, OUTPUT);
+    if (digitalRead(_stPin)) {
+        digitalWrite(_pkPin, HIGH);
+        delay(3000);
+    }
+    digitalWrite(_pkPin, LOW);
     delay(3000);
-  }
-  digitalWrite(_pkPin, LOW);
-  delay(3000);
-}
+}  
 
 bool GPRS::checkSIMStatus(void)
 {

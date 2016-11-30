@@ -31,7 +31,7 @@ GPRS gprs(Serial1);
 void setup()
 {
   // включаем GPRS шилд
-  gprs.powerUpDown();
+  gprs.powerOn();
   // открываем последовательный порт для мониторинга действий в программе
   Serial.begin(9600); 
   while (!Serial) {

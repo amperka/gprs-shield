@@ -1,6 +1,6 @@
 // библиотека для работы с GPRS устройством
 #include <GPRS_Shield_Arduino.h>
- 
+
 // создаём объект класса GPRS и передаём в него объект Serial1 
 GPRS gprs(Serial1);
 // можно указать дополнительные параметры — пины PK и ST
@@ -17,40 +17,48 @@ void setup()
   // для того, чтобы отследить все события в программе
   while (!Serial) {
   }
+  Serial.print("Serial init OK\r\n");
   // открываем Serial-соединение с GPRS Shield
   Serial1.begin(9600);
   // проверяем есть ли связь с GPRS устройством
   while (!gprs.init()) {
     // если связи нет, ждём 1 секунду
     // и выводим сообщение об ошибке
-    // процесс повторяется в цикле,
+    // процесс повторяется в цикле
     // пока не появится ответ от GPRS устройства
     delay(1000);
     Serial.print("GPRS Init error\r\n");
   }
-  // вывод об удачной инициализации GPRS Shield
+  // выводим сообщение об удачной инициализации GPRS Shield
   Serial.println("GPRS init success");
-  // сообщаем об ожидании звонка
-  Serial.println("Wait to call ");
 }
  
 void loop()
 {
-  // ожидаем звонка
-  if (gprs.ifcallNow()) {
-    // если поступает входящий звонок
-    // выводим сообщение
-    Serial.println("Incoming call");
-    // по истечении 5 секунд берём трубку
-    delay(5000);
-    gprs.answer();
-    // выводим сообщение о начале разговора
-    delay(1000);
-    Serial.println("Call a conversation");
-    while (!gprs.ifcallEnd()) {
-      // ждём пока месть абонент не положит трубку
+  // считываем данные с компьютера и записываем их в GPRS Shield
+  serialPCread();
+  // считываем данные с GPRS Shield и выводим их в Serial-порт
+  serialGPRSread();
+}
+ 
+void serialPCread()
+{
+  if (Serial.available() > 0) {
+    // если приходят данные по USB
+    while (Serial.available() > 0) {
+      // записываем их в GPRS Shield
+      Serial1.write(Serial.read());
     }
-    // выводим сообщение о конце разговора
-    Serial.println("Call over");
+  }
+}
+ 
+void serialGPRSread()
+{
+    if (Serial1.available() > 0) {
+      // если приходят данные с GPRS Shield
+      while (Serial1.available() > 0) {
+        // передаём их в USB
+        Serial.write(Serial1.read());
+    }
   }
 }

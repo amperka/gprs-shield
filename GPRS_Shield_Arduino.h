@@ -50,7 +50,7 @@ public:
     /** Create GPRS instance
      */
 
-    GPRS(Stream& serial, uint8_t pkPin, uint8_t stPin);
+    GPRS(Stream& serial, uint8_t pkPin = 2, uint8_t stPin = 3);
 
     /** get instance of GPRS class
      */
@@ -78,7 +78,7 @@ public:
      *  @returns
      *
      */
-    void powerUpDown();
+    void powerOn();
     void powerOff();
 
     /** send text SMS
