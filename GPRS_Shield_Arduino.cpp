@@ -83,6 +83,7 @@ bool GPRS::checkPowerUp(void) {
 
 // power Up GPRS Shield
 void GPRS::powerOn() {
+	delay(1000);
     pinMode(_pkPin, OUTPUT);
     if (!digitalRead(_stPin)) {
         digitalWrite(_pkPin, HIGH);
