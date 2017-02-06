@@ -32,7 +32,6 @@
 #ifndef __SIM900_H__
 #define __SIM900_H__
 
-#include <SoftwareSerial.h>
 #include <Arduino.h>
 
 #define DEFAULT_TIMEOUT     		 5   //seconds
