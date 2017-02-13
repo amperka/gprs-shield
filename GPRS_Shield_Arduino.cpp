@@ -145,6 +145,7 @@ bool GPRS::sendSMS(char *number, char *data)
   sim900_send_cmd(data);
   delay(500);
   sim900_send_End_Mark();
+  sim900_wait_for_resp("OK\r\n", CMD);
   return true;
 }
 
