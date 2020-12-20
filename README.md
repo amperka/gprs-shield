@@ -56,4 +56,4 @@ void loop()
 }
 ```
 
-Больше примеров — [в статье на Амперка / Вики](http://wiki.amperka.ru/%D0%BF%D1%80%D0%BE%D0%B4%D1%83%D0%BA%D1%82%D1%8B:gprs-shield).
+Больше примеров — [в статье на Амперка / Вики](http://wiki.amperka.ru/%D0%BF%D1%80%D0%BE%D0%B4%D1%83%D0%BA%D1%82%D1%8B:arduino-gprs-shield-v3).
