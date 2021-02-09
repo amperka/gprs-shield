@@ -706,7 +706,9 @@ sim900_read_buffer(resp, 96, timeout);
             return 0;
         }*/
             delay(500);
-            sim900_send_cmd(str);
+            for(int i=0; i<len; i++) {
+                sim900_send_byte(str[i]);
+            }
             delay(500);
             sim900_send_End_Mark();
             if(!sim900_wait_for_resp("SEND OK\r\n", DATA, DEFAULT_TIMEOUT * 10, DEFAULT_INTERCHAR_TIMEOUT * 10)) {
